@@ -5,7 +5,9 @@
   "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node index.js",
+    "start:bot": "node index.js",
+    "start:dashboard": "node server.js",
+    "start:all": "node main.js",
     "deploy": "node deploy-commands.js"
   },
   "keywords": [],
@@ -13,11 +15,18 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
+    "@qdrant/js-client-rest": "^1.16.2",
+    "cors": "^2.8.5",
     "discord.js": "^14.25.1",
-    "dotenv": "^16.4.0"
+    "dotenv": "^16.4.0",
+    "express": "^5.2.1",
+    "multer": "^2.0.2",
+    "uuid": "^13.0.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.2",
+    "concurrently": "^9.2.1",
     "eslint": "^9.39.2"
   }
 }

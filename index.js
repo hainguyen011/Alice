@@ -8,6 +8,13 @@ import {
   Events,
   GatewayIntentBits
 } from 'discord.js'
+import { ALICE_CONFIG } from './config/aliceConfig.js'
+import { getAIResponse } from './services/aiService.js'
+import {
+  createSuccessEmbed,
+  createWarningEmbed,
+  createErrorEmbed
+} from './utils/embedHelper.js'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -57,26 +64,29 @@ client.on(Events.InteractionCreate, async (interaction) => {
 })
 
 client.on(Events.MessageCreate, async (message) => {
-  // bỏ qua bot khác
   if (message.author.bot) return
-
-  // CHỈ phản hồi khi bot bị gắn thẻ
   if (!message.mentions.has(client.user)) return
 
-  // phản hồi đúng channel nơi bị mention
   const content = message.content
     .replace(`<@${client.user.id}>`, '')
     .replace(`<@!${client.user.id}>`, '')
     .trim()
 
-  // nếu không có nội dung sau khi mention
   if (!content) {
-    await message.reply('👋 Bạn gọi mình có việc gì không?')
+    const embed = createWarningEmbed(ALICE_CONFIG.EMBED.MESSAGES.NO_CONTENT)
+    await message.reply({ embeds: [embed] })
     return
   }
 
-  // logic xử lý
-  await message.reply(`🤖 Bạn vừa gọi mình và nói: **${content}**`)
+  try {
+    const aiText = await getAIResponse(content)
+    const embed = createSuccessEmbed(aiText)
+    await message.reply({ embeds: [embed] })
+  } catch (error) {
+    console.error('Gemini AI Error:', error)
+    const errorEmbed = createErrorEmbed(ALICE_CONFIG.EMBED.MESSAGES.ERROR)
+    await message.reply({ embeds: [errorEmbed] })
+  }
 })
 
 client.login(process.env.DISCORD_BOT_TOKEN)
