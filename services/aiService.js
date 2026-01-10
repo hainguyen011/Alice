@@ -8,7 +8,7 @@ const model = genAI.getGenerativeModel({
     systemInstruction: ALICE_CONFIG.SYSTEM_INSTRUCTION
 })
 
-export const getAIResponse = async (prompt, chatContext = '', availableRoles = '') => {
+export const getAIResponse = async (prompt, chatContext = '', availableRoles = '', availableChannels = '') => {
     try {
         const context = await getKnowledgeContext(prompt)
 
@@ -20,6 +20,8 @@ Dưới đây là tóm tắt ngữ cảnh cuộc hội thoại trước đó (n�
 ${chatContext || "Chưa có ngữ cảnh."}
 
 ${availableRoles ? `\nNgoài ra, đây là danh sách các Role có sẵn trong server. Nếu vấn đề vượt quá khả năng của bạn hoặc cần sự trợ giúp từ người thật, hãy tag role phù hợp (sử dụng cú pháp <@&ID>):\n${availableRoles}` : ''}
+
+${availableChannels ? `\nĐây là danh sách các kênh (Channel) có sẵn trong server. Nếu câu hỏi liên quan đến tìm nơi để chat, hãy gợi ý kênh phù hợp (sử dụng cú pháp <#ID>):\n${availableChannels}` : ''}
 
 Dựa vào các thông tin trên và nhân quyền hạn của bạn, hãy trả lời câu hỏi sau của người chơi. 
 Lưu ý: 

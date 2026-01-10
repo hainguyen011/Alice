@@ -13,6 +13,7 @@ const commandFiles = fs.readdirSync(commandsPath).filter(f => f.endsWith('.js'))
 
 for (const file of commandFiles) {
   const command = (await import(`./commands/${file}`)).default
+  console.log(`Loading command: ${command.data.name}`)
   commands.push(command.data.toJSON())
 }
 

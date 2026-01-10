@@ -40,6 +40,7 @@ for (const file of commandFiles) {
 
 client.once(Events.ClientReady, () => {
   console.log(`🤖 Logged in as ${client.user.tag}`)
+  console.log(`📋 Loaded commands: ${client.commands.map(c => c.data.name).join(', ')}`)
 })
 
 client.on(Events.InteractionCreate, async (interaction) => {
@@ -80,7 +81,22 @@ client.on(Events.MessageCreate, async (message) => {
   }
 
   try {
-    const aiText = await getAIResponse(content)
+    // --- Chuẩn bị danh sách Channels (Input) ---
+    // Lấy danh sách tất cả các kênh text để AI biết và gợi ý
+    let availableChannels = ''
+    if (message.guild) {
+      const channels = message.guild.channels.cache
+        .filter(c => c.type === 0) // ChannelType.GuildText
+        .map(c => `- ${c.name}: <#${c.id}>`)
+        .join('\n')
+
+      if (channels) {
+        availableChannels = channels
+      }
+    }
+
+    // Truyền '' cho context và roles vì index.js chưa implement memory/roles full như server.js
+    const aiText = await getAIResponse(content, '', '', availableChannels)
     const embed = createSuccessEmbed(aiText)
     await message.reply({ embeds: [embed] })
 

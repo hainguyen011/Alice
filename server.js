@@ -137,8 +137,21 @@ client.on(Events.MessageCreate, async (message) => {
             }
         }
 
+        // --- Chuẩn bị danh sách Channels (Output) ---
+        let availableChannels = ''
+        if (message.guild) {
+            const channels = message.guild.channels.cache
+                .filter(c => c.type === 0) // ChannelType.GuildText
+                .map(c => `- ${c.name}: <#${c.id}>`)
+                .join('\n')
+
+            if (channels) {
+                availableChannels = channels
+            }
+        }
+
         // 3. Gửi kèm ngữ cảnh vả danh sách Role cho AI
-        const aiText = await getAIResponse(contentForAI, context, availableRoles)
+        const aiText = await getAIResponse(contentForAI, context, availableRoles, availableChannels)
         const embed = createSuccessEmbed(aiText)
         await message.reply({ embeds: [embed] })
 
