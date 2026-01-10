@@ -22,6 +22,7 @@
                 <a href="#" class="nav-item active" data-tab="dashboard"><i class="fas fa-tachometer-alt"></i>
                     Dashboard</a>
                 <a href="#" class="nav-item" data-tab="knowledge"><i class="fas fa-book"></i> Tri Thức (RAG)</a>
+                <a href="#" class="nav-item" data-tab="conversations"><i class="fas fa-comments"></i> Cuộc Hội Thoại</a>
                 <a href="#" class="nav-item" data-tab="settings"><i class="fas fa-cog"></i> Cài Đặt Bot</a>
                 <a href="#" class="nav-item" data-tab="logs"><i class="fas fa-terminal"></i> Logs</a>
             </nav>
@@ -142,6 +143,26 @@
                             <div id="knowledge-list" class="knowledge-table">
                                 <!-- Items rendered via JS -->
                                 <div class="p-4 text-center text-muted">Loading tri thức...</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab: Conversations -->
+                <div id="tab-conversations" class="tab-content">
+                    <div class="tx-card">
+                        <div class="tx-card-header d-flex-between">
+                            <span><i class="fas fa-history"></i> Lịch sử trò chuyện</span>
+                            <div class="header-actions">
+                                <button id="sync-discord-btn" class="btn-tx-primary btn-sm"><i
+                                        class="fas fa-sync-alt"></i> Đồng bộ từ Discord</button>
+                                <button id="refresh-conv-btn" class="btn-tx-outline btn-sm"><i class="fas fa-sync"></i>
+                                    Làm mới</button>
+                            </div>
+                        </div>
+                        <div class="conversations-container">
+                            <div id="conversation-list" class="conversation-list">
+                                <div class="p-4 text-center text-muted">Đang tải cuộc hội thoại...</div>
                             </div>
                         </div>
                     </div>

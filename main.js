@@ -22,13 +22,11 @@ const runScript = (scriptPath, label) => {
     return process
 }
 
-console.log('🚀 Khởi động Alice System (Bot + Dashboard)...')
+console.log('🚀 Khởi động Alice System (Bot & Dashboard Unified)...')
 
-const bot = runScript('index.js', 'BOT')
-const dashboard = runScript('server.js', 'DASHBOARD')
+const appProcess = runScript('server.js', 'ALICE_APP')
 
 process.on('SIGINT', () => {
-    bot.kill()
-    dashboard.kill()
+    appProcess.kill()
     process.exit()
 })

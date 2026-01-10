@@ -15,6 +15,7 @@ import {
   createWarningEmbed,
   createErrorEmbed
 } from './utils/embedHelper.js'
+import { logConversation } from './services/conversationService.js'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -82,6 +83,9 @@ client.on(Events.MessageCreate, async (message) => {
     const aiText = await getAIResponse(content)
     const embed = createSuccessEmbed(aiText)
     await message.reply({ embeds: [embed] })
+
+    // Ghi log cuộc hội thoại
+    await logConversation(message.author.username, message.author.id, content, aiText)
   } catch (error) {
     console.error('Gemini AI Error:', error)
     const errorEmbed = createErrorEmbed(ALICE_CONFIG.EMBED.MESSAGES.ERROR)

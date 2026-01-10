@@ -43,11 +43,11 @@ Yêu cầu:
         FOOTER_TEXT: 'Alice - VibeCity - Vibe cao, City chất',
         TYPES: {
             SUCCESS: {
-                COLOR: '#39FF14', // Green Neon
+                COLOR: '#00FFD1', // Green Neon
                 ICON: '✅'
             },
             WARNING: {
-                COLOR: '#FFAD00', // Orange Neon
+                COLOR: '#fbff00ff', // Orange Neon
                 ICON: ''
             },
             ERROR: {

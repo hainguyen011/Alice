@@ -5,6 +5,9 @@ const form = document.getElementById('knowledge-form');
 const knowledgeList = document.getElementById('knowledge-list');
 const totalEmbeddings = document.getElementById('total-embeddings');
 const refreshBtn = document.getElementById('refresh-btn');
+const conversationList = document.getElementById('conversation-list');
+const refreshConvBtn = document.getElementById('refresh-conv-btn');
+const syncDiscordBtn = document.getElementById('sync-discord-btn');
 
 /**
  * Hiển thị thông báo
@@ -152,6 +155,90 @@ async function deleteItem(id) {
 }
 
 /**
+ * Tải danh sách hội thoại
+ */
+async function loadConversations() {
+    try {
+        const response = await fetch(`${API_URL}/conversations`);
+        const data = await response.json();
+        renderConversations(data);
+    } catch (error) {
+        console.error('Error loading conversations:', error);
+        showToast('Lỗi tải cuộc hội thoại!', '#f85149');
+    }
+}
+
+/**
+ * Render danh sách hội thoại
+ */
+function renderConversations(items) {
+    if (items.length === 0) {
+        conversationList.innerHTML = '<div class="p-4 text-center text-muted">Chưa có cuộc hội thoại nào được ghi lại.</div>';
+        return;
+    }
+
+    conversationList.innerHTML = items.map(item => {
+        const date = new Date(item.timestamp).toLocaleString('vi-VN');
+        return `
+        <div class="conversation-item">
+            <div class="conv-header">
+                <div class="conv-user">
+                    <span class="user-tag"><i class="fas fa-user"></i> ${item.username}</span>
+                    <small class="text-muted">ID: ${item.userId}</small>
+                </div>
+                <div class="conv-time">${date}</div>
+            </div>
+            <div class="conv-body">
+                <div class="msg-bubble msg-user">
+                    <span class="msg-label">${item.username}</span>
+                    ${item.message}
+                </div>
+                <div class="msg-bubble msg-alice">
+                    <span class="msg-label">Alice</span>
+                    ${item.response}
+                </div>
+            </div>
+        </div>
+    `}).join('');
+}
+
+/**
+ * Đồng bộ từ Discord
+ */
+async function syncFromDiscord() {
+    try {
+        syncDiscordBtn.disabled = true;
+        syncDiscordBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang đồng bộ...';
+        showToast('Đang quét tin nhắn từ Discord...', '#337ab7');
+
+        const response = await fetch(`${API_URL}/conversations/sync`, { method: 'POST' });
+
+        let data;
+        const contentType = response.headers.get("content-type");
+        if (contentType && contentType.indexOf("application/json") !== -1) {
+            data = await response.json();
+        } else {
+            const text = await response.text();
+            console.error('Non-JSON response:', text);
+            throw new Error(`Server returned non-JSON response (HTML). Vui lòng khởi động lại server hoặc kiểm tra log terminal.`);
+        }
+
+        if (data.success) {
+            showToast(`Đã đồng bộ thành công ${data.count} cuộc hội thoại mới!`, '#5cb85c');
+            loadConversations();
+        } else {
+            throw new Error(data.error || 'Đồng bộ thất bại');
+        }
+    } catch (error) {
+        console.error('Sync error:', error);
+        showToast(`Lỗi đồng bộ: ${error.message}`, '#f85149');
+    } finally {
+        syncDiscordBtn.disabled = false;
+        syncDiscordBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Đồng bộ từ Discord';
+    }
+}
+
+/**
  * Xử lý chuyển đổi Tab (Sidebar Navigation)
  */
 const navItems = document.querySelectorAll('.nav-item');
@@ -182,9 +269,16 @@ navItems.forEach(item => {
         if (targetTab === 'knowledge') {
             loadKnowledge();
         }
+
+        // Nếu chuyển sang tab Conversations, load lại dữ liệu
+        if (targetTab === 'conversations') {
+            loadConversations();
+        }
     });
 });
 
 // Initial load
 loadKnowledge();
 refreshBtn.onclick = loadKnowledge;
+refreshConvBtn.onclick = loadConversations;
+syncDiscordBtn.onclick = syncFromDiscord;

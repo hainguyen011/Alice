@@ -14,6 +14,11 @@
     --tx-border: rgba(255, 255, 255, 0.05);
 }
 
+.header-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
 * {
     box-sizing: border-box;
     margin: 0;
@@ -369,4 +374,81 @@ input:focus, textarea:focus {
     display: none;
     box-shadow: 0 10px 40px rgba(0,0,0,0.5);
     z-index: 9999;
+}
+/* Conversations */
+.conversations-container {
+    max-height: 600px;
+    overflow-y: auto;
+}
+
+.conversation-item {
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--tx-border);
+    transition: background 0.2s;
+}
+
+.conversation-item:hover {
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.conv-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.75rem;
+}
+
+.conv-user {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.user-tag {
+    background: var(--tx-primary);
+    color: white;
+    padding: 0.2rem 0.6rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.conv-time {
+    font-size: 0.8rem;
+    color: var(--tx-text-muted);
+}
+
+.conv-body {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.msg-bubble {
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    max-width: 90%;
+    line-height: 1.5;
+}
+
+.msg-user {
+    background: rgba(255, 255, 255, 0.05);
+    border-left: 3px solid var(--tx-text-muted);
+    align-self: flex-start;
+}
+
+.msg-alice {
+    background: rgba(51, 122, 183, 0.1);
+    border-left: 3px solid var(--tx-primary);
+    align-self: flex-start;
+    color: var(--tx-info);
+}
+
+.msg-label {
+    display: block;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    font-weight: 700;
+    margin-bottom: 0.25rem;
+    opacity: 0.7;
 }
