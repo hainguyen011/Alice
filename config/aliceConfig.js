@@ -47,7 +47,7 @@ Yêu cầu:
                 ICON: '✅'
             },
             WARNING: {
-                COLOR: '#fbff00ff', // Orange Neon
+                COLOR: '#FBFF00', // Orange Neon
                 ICON: ''
             },
             ERROR: {

@@ -55,3 +55,30 @@ export const getEmbedding = async (text) => {
         throw error
     }
 }
+
+/**
+ * Kiểm tra tính độc hại (toxicity) của nội dung
+ * Trả về { isToxic: boolean, level: 'low'|'medium'|'high', reason: string }
+ */
+export const checkToxicity = async (content) => {
+    try {
+        const toxicityModel = genAI.getGenerativeModel({
+            model: ALICE_CONFIG.MODEL_NAME,
+            systemInstruction: "Bạn là một chuyên gia kiểm duyệt nội dung chuyên nghiệp. Hãy phân tích văn bản sau và cho biết nó có vi phạm các quy tắc cộng đồng (chửi thề, xúc phạm, toxic, nhạy cảm) hay không. Chỉ trả về kết quả dưới dạng JSON: { \"isToxic\": boolean, \"level\": \"low\"|\"medium\"|\"high\", \"reason\": \"string\" }"
+        })
+
+        const result = await toxicityModel.generateContent(content)
+        const responseText = result.response.text()
+
+        // Trích xuất JSON từ phản hồi (đề phòng AI trả về text bao quanh)
+        const jsonMatch = responseText.match(/\{.*\}/s)
+        if (jsonMatch) {
+            return JSON.parse(jsonMatch[0])
+        }
+
+        return { isToxic: false, level: 'low', reason: '' }
+    } catch (error) {
+        console.error('Toxicity Check Error:', error)
+        return { isToxic: false, level: 'low', reason: 'Error checking toxicity' }
+    }
+}

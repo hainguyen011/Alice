@@ -18,7 +18,8 @@ import {
     Collection
 } from 'discord.js'
 import { ALICE_CONFIG } from './config/aliceConfig.js'
-import { getAIResponse } from './services/aiService.js'
+import { getAIResponse, checkToxicity } from './services/aiService.js'
+import { handleViolation } from './services/moderationService.js'
 import {
     createSuccessEmbed,
     createWarningEmbed,
@@ -117,23 +118,30 @@ client.on(Events.MessageCreate, async (message) => {
     }
 
     try {
+        // --- 1. Kiểm tra ngôn ngữ không phù hợp ---
+        const toxicityResult = await checkToxicity(contentForAI)
+        if (toxicityResult.isToxic) {
+            const violated = await handleViolation(message, toxicityResult)
+            if (violated) return // Dừng xử lý nếu đã bị mute
+        }
+
         // 2. Lấy ngữ cảnh hội thoại
         const context = getContext(message.channelId)
 
         // --- Chuẩn bị danh sách Role (Output) ---
-        // Tạo danh sách role để AI có thể tag khi cần hỗ trợ
-        // Định dạng: - Tên Role: <@&ID>
+        // Ưu tiên các Role có quyền quản trị hoặc hỗ trợ để AI tag khi cần
         let availableRoles = ''
         if (message.guild) {
-            // Lấy 20 roles đầu tiên để tránh quá dài (bỏ @everyone)
+            const managementKeywords = ['admin', 'quản trị', 'staff', 'mod', 'helper', 'biên phòng', 'công an'];
             const roles = message.guild.roles.cache
-                .filter(r => r.name !== '@everyone')
-                .first(20)
+                .filter(r => r.name !== '@everyone' &&
+                    managementKeywords.some(kw => r.name.toLowerCase().includes(kw)))
+                .first(15) // Giới hạn 15 roles quan trọng nhất
                 .map(r => `- ${r.name}: <@&${r.id}>`)
                 .join('\n')
 
             if (roles) {
-                availableRoles = `Danh sách Role khả dụng (Sử dụng cú pháp <@&ID> để tag):\n${roles}`
+                availableRoles = `Danh sách Role Quản trị/Hỗ trợ (Sử dụng cú pháp <@&ID> để tag khi cần):\n${roles}`
             }
         }
 

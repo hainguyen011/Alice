@@ -9,7 +9,8 @@ import {
   GatewayIntentBits
 } from 'discord.js'
 import { ALICE_CONFIG } from './config/aliceConfig.js'
-import { getAIResponse } from './services/aiService.js'
+import { getAIResponse, checkToxicity } from './services/aiService.js'
+import { handleViolation } from './services/moderationService.js'
 import {
   createSuccessEmbed,
   createWarningEmbed,
@@ -39,8 +40,8 @@ for (const file of commandFiles) {
 }
 
 client.once(Events.ClientReady, () => {
-  console.log(`🤖 Logged in as ${client.user.tag}`)
-  console.log(`📋 Loaded commands: ${client.commands.map(c => c.data.name).join(', ')}`)
+  console.log(`Logged in as ${client.user.tag}`)
+  console.log(`Loaded commands: ${client.commands.map(c => c.data.name).join(', ')}`)
 })
 
 client.on(Events.InteractionCreate, async (interaction) => {
@@ -81,6 +82,13 @@ client.on(Events.MessageCreate, async (message) => {
   }
 
   try {
+    // --- 1. Kiểm tra ngôn ngữ không phù hợp ---
+    const toxicityResult = await checkToxicity(content)
+    if (toxicityResult.isToxic) {
+      const violated = await handleViolation(message, toxicityResult)
+      if (violated) return // Dừng xử lý nếu đã bị mute
+    }
+
     // --- Chuẩn bị danh sách Channels (Input) ---
     // Lấy danh sách tất cả các kênh text để AI biết và gợi ý
     let availableChannels = ''
@@ -95,8 +103,24 @@ client.on(Events.MessageCreate, async (message) => {
       }
     }
 
-    // Truyền '' cho context và roles vì index.js chưa implement memory/roles full như server.js
-    const aiText = await getAIResponse(content, '', '', availableChannels)
+    // --- Chuẩn bị danh sách Role (Input) ---
+    let availableRoles = ''
+    if (message.guild) {
+      const managementKeywords = ['admin', 'quản trị', 'staff', 'mod', 'helper', 'biên phòng', 'công an'];
+      const roles = message.guild.roles.cache
+        .filter(r => r.name !== '@everyone' &&
+          managementKeywords.some(kw => r.name.toLowerCase().includes(kw)))
+        .first(15)
+        .map(r => `- ${r.name}: <@&${r.id}>`)
+        .join('\n')
+
+      if (roles) {
+        availableRoles = `Danh sách Role Quản trị/Hỗ trợ:\n${roles}`
+      }
+    }
+
+    // Truyền context, roles và channels cho AI
+    const aiText = await getAIResponse(content, '', availableRoles, availableChannels)
     const embed = createSuccessEmbed(aiText)
     await message.reply({ embeds: [embed] })
 
