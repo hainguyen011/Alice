@@ -1,32 +1,31 @@
-import { spawn } from 'child_process'
-import path from 'path'
-import { fileURLToPath } from 'url'
+import 'dotenv/config';
+import connectDB from './services/database.js';
+import { botManager } from './services/botService.js';
+import { spawn } from 'child_process';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = path.dirname(__filename)
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-/**
- * Runner đơn giản để khởi động cả Bot và Dashboard mà không cần dùng cmd.exe
- * Giúp tránh lỗi ENOENT trên một số môi trường Windows
- */
-const runScript = (scriptPath, label) => {
-    const process = spawn('node', [path.join(__dirname, scriptPath)], {
+const start = async () => {
+    // 1. Kết nối Database
+    await connectDB();
+
+    // 2. Khởi chạy Dashboard (server.js) như một process riêng hoặc import
+    // Ở đây ta chạy như một process để tách biệt bot logic và dashboard logic
+    const dashboard = spawn('node', ['server.js'], {
         stdio: 'inherit',
-        shell: false // Quan trọng: Không dùng shell để tránh lỗi ENOENT cmd.exe
-    })
+        shell: true
+    });
 
-    process.on('close', (code) => {
-        console.log(`[${label}] exited with code ${code}`)
-    })
+    dashboard.on('close', (code) => {
+        console.log(`Dashboard process exited with code ${code}`);
+    });
 
-    return process
-}
+    console.log('🚀 Multi-Bot System (Master) is delegating to Dashboard...');
+};
 
-console.log('🚀 Khởi động Alice System (Bot & Dashboard Unified)...')
-
-const appProcess = runScript('server.js', 'ALICE_APP')
-
-process.on('SIGINT', () => {
-    appProcess.kill()
-    process.exit()
-})
+start().catch(err => {
+    console.error('Failed to start system:', err);
+});

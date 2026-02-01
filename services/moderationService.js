@@ -34,16 +34,14 @@ const incrementViolation = (userId) => {
 /**
  * Xử lý việc vi phạm nội dung
  */
-export const handleViolation = async (message, toxicityResult) => {
+export const handleViolation = async (message, toxicityResult, botData = null) => {
     const { level, reason } = toxicityResult;
     const userId = message.author.id;
     const violationCount = incrementViolation(userId);
 
     // Tính toán thời gian mute (phút)
-    // Cấp độ vi phạm: low -> 1, medium -> 2, high -> 3
     const levelMultiplier = level === 'high' ? 3 : (level === 'medium' ? 2 : 1);
 
-    // Nếu là lần đầu (violationCount === 1), chỉ nhắc nhở, không mute
     let muteMinutes = 0;
     if (violationCount > 1) {
         muteMinutes = (levelMultiplier * 2) + ((violationCount - 1) * 2);
@@ -52,23 +50,20 @@ export const handleViolation = async (message, toxicityResult) => {
 
     try {
         const member = await message.guild.members.fetch(userId);
-
-        // Xác định mức độ nghiêm trọng để chọn màu (High hoặc tái phạm nhiều lần)
         const isSerious = level === 'high' || violationCount > 2;
 
         const statusTitle = violationCount === 1
-            ? ' Alice - Nhắc Nhở '
-            : (isSerious ? ' Alice - Lệnh Phạt Nặng ' : ' Alice - Cảnh Báo ');
+            ? ` ${botData?.name || 'Bot'} - Nhắc Nhở `
+            : (isSerious ? ` ${botData?.name || 'Bot'} - Lệnh Phạt Nặng ` : ` ${botData?.name || 'Bot'} - Cảnh Báo `);
 
-        let description = `Chào ${message.author}, Alice nhận thấy tin nhắn của bạn không phù hợp.\n` +
+        let description = `Chào ${message.author}, ${botData?.name || 'Bot'} nhận thấy tin nhắn của bạn không phù hợp.\n` +
             `- **Lý do:** ${reason}\n`;
 
         let embed;
         if (violationCount === 1) {
             description += `\n**Đây là lần nhắc nhở đầu tiên.** Hãy chú ý ngôn từ để tránh bị cấm chat nhé!`;
-            embed = createWarningEmbed(description);
+            embed = createWarningEmbed(description, botData);
         } else {
-            // Tìm role Admin để báo cáo nếu cần
             let adminTag = '';
             if (message.guild) {
                 const adminRoles = message.guild.roles.cache.filter(role =>
@@ -81,7 +76,6 @@ export const handleViolation = async (message, toxicityResult) => {
             }
 
             if (member && member.moderatable) {
-                console.log(`[MOD] Muting user ${userId} for ${muteMinutes} minutes.`);
                 const muteMs = muteMinutes * 60 * 1000;
                 await member.timeout(muteMs, `Auto-mod: ${reason} (Lần ${violationCount})`);
 
@@ -91,20 +85,20 @@ export const handleViolation = async (message, toxicityResult) => {
                     description += `**Báo cáo:** Người chơi này đã tái phạm nhiều lần. ${adminTag} vui lòng kiểm tra.\n\n`;
                 }
 
-                description += `*Hãy giữ cho môi trường VibeCity văn minh nhé!*`;
-                embed = isSerious ? createErrorEmbed(description) : createWarningEmbed(description);
+                description += `*Hãy giữ cho môi trường văn minh nhé!*`;
+                embed = isSerious ? createErrorEmbed(description, botData) : createWarningEmbed(description, botData);
             } else {
-                // Không thể mute (do phân quyền)
                 description += `\n*Lưu ý: Bạn đang vi phạm quy tắc cộng đồng.*`;
                 if (adminTag) {
-                    description += `\n\n**Báo cáo Admin:** ${adminTag} có đối tượng vi phạm nhưng Alice không thể tự xử lý (Admin/Role cao).`;
+                    description += `\n\n**Báo cáo Admin:** ${adminTag} có đối tượng vi phạm nhưng ${botData?.name || 'Alice'} không thể tự xử lý.`;
                 }
-                embed = createWarningEmbed(description);
+                embed = createWarningEmbed(description, botData);
             }
         }
 
         embed.setTitle(statusTitle);
         await message.reply({ embeds: [embed] });
+        // ... (remaining role assignment logic)
 
         // --- Bổ sung: Gán Role "Toxic Player" nếu vi phạm quá nhiều (>= 5 lần) ---
         if (violationCount >= 5 && message.guild) {

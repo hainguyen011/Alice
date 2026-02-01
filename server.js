@@ -2,32 +2,18 @@ import 'dotenv/config'
 import express from 'express'
 import cors from 'cors'
 import { v4 as uuidv4 } from 'uuid'
-import { getEmbedding } from './services/aiService.js'
+import connectDB from './services/database.js'
+import { Bot, Conversation, Knowledge, Channel, Guild } from './services/models.js'
+import { getEmbedding, getAIResponse, listModels } from './services/aiService.js'
 import {
     initCollection,
     upsertKnowledge,
-    getAllKnowledge,
     deleteKnowledge
 } from './services/qdrantService.js'
-import { addMessageToMemory, getContext } from './services/memoryService.js'
-import { getConversations, logConversation, syncDiscordHistory } from './services/conversationService.js'
-import {
-    Client,
-    Events,
-    GatewayIntentBits,
-    Collection
-} from 'discord.js'
-import { ALICE_CONFIG } from './config/aliceConfig.js'
-import { getAIResponse, checkToxicity } from './services/aiService.js'
-import { handleViolation } from './services/moderationService.js'
-import {
-    createSuccessEmbed,
-    createWarningEmbed,
-    createErrorEmbed
-} from './utils/embedHelper.js'
-
+import { getConversations, syncDiscordHistory } from './services/conversationService.js'
+import { botManager } from './services/botService.js'
+import { guildService } from './services/guildService.js'
 import multer from 'multer'
-
 import fs from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
@@ -38,171 +24,271 @@ const __dirname = path.dirname(__filename)
 const app = express()
 const PORT = process.env.DASHBOARD_PORT || 3000
 
-// --- Discord Bot Integration ---
-const client = new Client({
-    intents: [
-        GatewayIntentBits.Guilds,
-        GatewayIntentBits.GuildMessages,
-        GatewayIntentBits.MessageContent
-    ]
-})
+app.use(cors())
+app.use(express.json())
 
-client.commands = new Collection()
-const commandsPath = path.join(__dirname, 'commands')
-if (fs.existsSync(commandsPath)) {
-    const commandFiles = fs.readdirSync(commandsPath).filter(f => f.endsWith('.js'))
-    for (const file of commandFiles) {
-        const command = (await import(`./commands/${file}`)).default
-        client.commands.set(command.data.name, command)
-    }
-}
-
-client.once(Events.ClientReady, () => {
-    console.log(`🤖 Logged in as ${client.user.tag}`)
-})
-
-client.on(Events.InteractionCreate, async (interaction) => {
-    if (!interaction.isChatInputCommand()) return
-
-    const command = interaction.client.commands.get(interaction.commandName)
-
-    if (!command) {
-        console.error(`No command matching ${interaction.commandName} was found.`)
-        return
-    }
-
-    try {
-        await command.execute(interaction)
-    } catch (error) {
-        console.error(error)
-        if (interaction.replied || interaction.deferred) {
-            await interaction.followUp({ content: 'There was an error while executing this command!', ephemeral: true })
-        } else {
-            await interaction.reply({ content: 'There was an error while executing this command!', ephemeral: true })
-        }
-    }
-})
-
-client.on(Events.MessageCreate, async (message) => {
-    if (message.author.bot) return
-
-    // --- Xử lý Role Mentions (Input) ---
-    // Thay thế <@&roleId> bằng @RoleName để AI hiểu ngữ cảnh
-    let processedContent = message.content
-    if (message.guild) {
-        message.mentions.roles.forEach(role => {
-            processedContent = processedContent.replace(`<@&${role.id}>`, `@${role.name}`)
-        })
-    }
-
-    // 1. Luôn thêm tin nhắn (đã xử lý) vào bộ nhớ ngữ cảnh
-    addMessageToMemory(
-        message.channelId,
-        message.author.username,
-        processedContent,
-        false // isBot = false
-    )
-
-    if (!message.mentions.has(client.user)) return
-
-    // Clean content cho AI (xóa mention bot)
-    const contentForAI = processedContent
-        .replace(`<@${client.user.id}>`, '')
-        .replace(`<@!${client.user.id}>`, '')
-        .trim()
-
-    if (!contentForAI) {
-        const embed = createWarningEmbed(ALICE_CONFIG.EMBED.MESSAGES.NO_CONTENT)
-        await message.reply({ embeds: [embed] })
-        return
-    }
-
-    try {
-        // --- 1. Kiểm tra ngôn ngữ không phù hợp ---
-        const toxicityResult = await checkToxicity(contentForAI)
-        if (toxicityResult.isToxic) {
-            const violated = await handleViolation(message, toxicityResult)
-            if (violated) return // Dừng xử lý nếu đã bị mute
-        }
-
-        // 2. Lấy ngữ cảnh hội thoại
-        const context = getContext(message.channelId)
-
-        // --- Chuẩn bị danh sách Role (Output) ---
-        // Ưu tiên các Role có quyền quản trị hoặc hỗ trợ để AI tag khi cần
-        let availableRoles = ''
-        if (message.guild) {
-            const managementKeywords = ['admin', 'quản trị', 'staff', 'mod', 'helper', 'biên phòng', 'công an'];
-            const roles = message.guild.roles.cache
-                .filter(r => r.name !== '@everyone' &&
-                    managementKeywords.some(kw => r.name.toLowerCase().includes(kw)))
-                .first(15) // Giới hạn 15 roles quan trọng nhất
-                .map(r => `- ${r.name}: <@&${r.id}>`)
-                .join('\n')
-
-            if (roles) {
-                availableRoles = `Danh sách Role Quản trị/Hỗ trợ (Sử dụng cú pháp <@&ID> để tag khi cần):\n${roles}`
-            }
-        }
-
-        // --- Chuẩn bị danh sách Channels (Output) ---
-        let availableChannels = ''
-        if (message.guild) {
-            const channels = message.guild.channels.cache
-                .filter(c => c.type === 0) // ChannelType.GuildText
-                .map(c => `- ${c.name}: <#${c.id}>`)
-                .join('\n')
-
-            if (channels) {
-                availableChannels = channels
-            }
-        }
-
-        // 3. Gửi kèm ngữ cảnh vả danh sách Role cho AI
-        const aiText = await getAIResponse(contentForAI, context, availableRoles, availableChannels)
-        const embed = createSuccessEmbed(aiText)
-        await message.reply({ embeds: [embed] })
-
-        // 4. Lưu phản hồi của Bot vào bộ nhớ
-        addMessageToMemory(
-            message.channelId,
-            'Alice',
-            aiText,
-            true // isBot = true
-        )
-
-        // Ghi log cuộc hội thoại
-        await logConversation(message.author.username, message.author.id, contentForAI, aiText)
-    } catch (error) {
-        console.error('Gemini AI Error:', error)
-        const errorEmbed = createErrorEmbed(ALICE_CONFIG.EMBED.MESSAGES.ERROR)
-        await message.reply({ embeds: [errorEmbed] })
-    }
-})
-
-client.login(process.env.DISCORD_BOT_TOKEN)
-// --- End Discord Bot Integration ---
-
-// Cấu hình multer để lưu tạm file
-const upload = multer({ dest: 'uploads/' })
-
-// Middleware log yêu cầu (Debug)
+// Middleware log yêu cầu
 app.use((req, res, next) => {
     console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
     next();
 });
 
-app.use(cors())
-app.use(express.json())
+// --- API Routes (PHẢI TRƯỚC STATIC ĐỂ TRÁNH CONFLICT) ---
 
-// --- API Routes (Chuyển lên trước static để tránh trùng lặp) ---
+app.get('/api/health', (req, res) => res.json({ status: 'ok', time: new Date() }));
+
+/**
+ * AI Utilities
+ */
+app.get('/api/ai/models', async (req, res) => {
+    try {
+        const apiKey = req.query.apiKey;
+        const models = await listModels(apiKey);
+        res.json(models);
+    } catch (error) {
+        console.error('Error in GET /api/ai/models:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+/**
+ * Quản lý Bots
+ */
+app.get('/api/bots', async (req, res) => {
+    try {
+        console.log('Fetching all bots from DB...');
+        const bots = await Bot.find();
+        res.json(bots);
+    } catch (error) {
+        console.error('Error in GET /api/bots:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.post('/api/bots', async (req, res) => {
+    try {
+        console.log('Creating new bot:', req.body.name, 'with data:', req.body);
+        const bot = await Bot.create(req.body);
+        if (bot.isActive) {
+            await botManager.startBot(bot);
+        }
+        res.json(bot);
+    } catch (error) {
+        console.error('Error in POST /api/bots:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.patch('/api/bots/:id', async (req, res) => {
+    try {
+        console.log('Updating bot:', req.params.id, 'with data:', req.body);
+
+        // Tránh ghi đè toàn bộ object config nếu chỉ gửi colors
+        const updateData = { ...req.body };
+        if (updateData.config && updateData.config.colors) {
+            delete updateData.config;
+            updateData['config.colors.success'] = req.body.config.colors.success;
+        }
+
+        const bot = await Bot.findByIdAndUpdate(req.params.id, updateData, { new: true });
+        if (!bot) {
+            return res.status(404).json({ error: 'Bot không tồn tại!' });
+        }
+
+        // Restart bot nếu có thay đổi quan trọng hoặc trạng thái active
+        if (req.body.isActive === false) {
+            await botManager.stopBot(req.params.id);
+        } else if (req.body.isActive === true || req.body.bot_token || req.body.modelName || req.body.systemInstruction) {
+            await botManager.stopBot(req.params.id);
+            await botManager.startBot(bot);
+        }
+        res.json(bot);
+    } catch (error) {
+        console.error('Error in PATCH /api/bots:', error);
+        res.status(500).json({ error: `Lỗi Server: ${error.message}` });
+    }
+});
+
+app.delete('/api/bots/:id', async (req, res) => {
+    try {
+        console.log('Deleting bot:', req.params.id);
+        await botManager.stopBot(req.params.id);
+        await Bot.findByIdAndDelete(req.params.id);
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Error deleting bot:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.post('/api/bots/:id/sync', async (req, res) => {
+    try {
+        console.log('Syncing metadata for bot:', req.params.id);
+        const metadata = await botManager.syncMetadata(req.params.id);
+        res.json(metadata);
+    } catch (error) {
+        console.error('Error syncing bot metadata:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+/**
+ * Quản lý Channels
+ */
+app.get('/api/channels', async (req, res) => {
+    try {
+        const channels = await Channel.find().populate('botId', 'name');
+        res.json(channels);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.post('/api/channels', async (req, res) => {
+    try {
+        const { channelId, name, botId, description } = req.body;
+
+        // Clean data strictly
+        const data = {
+            channelId: channelId?.trim(),
+            name: name?.trim(),
+            botId: botId === '' ? null : botId,
+            description: description?.trim(),
+            isActive: true
+        };
+
+        console.log('Final channel data to save:', data);
+
+        const channel = await Channel.create(data);
+        res.json(channel);
+    } catch (error) {
+        console.error('CRITICAL Error in POST /api/channels:', error);
+
+        // Handle duplicate key error (MongoDB error code 11000)
+        if (error.code === 11000) {
+            return res.status(400).json({
+                error: `Channel ID "${req.body.channelId}" đã được đăng ký trước đó. Vui lòng kiểm tra lại.`
+            });
+        }
+
+        // Return detailed error for debugging
+        res.status(500).json({
+            error: 'Lỗi Server khi tạo channel',
+            details: error.message,
+            stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+        });
+    }
+});
+
+app.patch('/api/channels/:id', async (req, res) => {
+    try {
+        const data = { ...req.body };
+        if (data.botId === '') data.botId = null;
+        // _id không được phép thay đổi
+        delete data._id;
+
+        const channel = await Channel.findByIdAndUpdate(req.params.id, data, { new: true });
+        res.json(channel);
+    } catch (error) {
+        console.error('Error in PATCH /api/channels:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.delete('/api/channels/:id', async (req, res) => {
+    try {
+        await Channel.findByIdAndDelete(req.params.id);
+        res.json({ success: true });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+/**
+ * Quản lý Guilds (Servers)
+ */
+app.get('/api/guilds', async (req, res) => {
+    try {
+        const guilds = await Guild.find();
+        res.json(guilds);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.post('/api/guilds', async (req, res) => {
+    console.log('--- Incoming POST /api/guilds ---');
+    console.log('Body:', req.body);
+    try {
+        const guildId = req.body.guildId?.trim();
+        const description = req.body.description?.trim();
+
+        if (!guildId) return res.status(400).json({ error: 'Vui lòng nhập Guild ID' });
+
+        // Use guildService to verify guild existence and get name (auto-finds bot)
+        const discordData = await guildService.fetchDiscordGuildData(guildId);
+        console.log('Discord data found:', discordData.name);
+
+        const guild = await Guild.findOneAndUpdate(
+            { guildId },
+            {
+                guildId,
+                name: discordData.name,
+                description,
+                isActive: true
+            },
+            { upsert: true, new: true }
+        );
+
+        res.json(guild);
+    } catch (error) {
+        console.error('Error in POST /api/guilds:', error);
+        res.status(400).json({ error: error.message });
+    }
+});
+
+app.get('/api/guilds/:guildId/discord-channels', async (req, res) => {
+    try {
+        const data = await guildService.fetchDiscordGuildData(req.params.guildId);
+        res.json(data);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.post('/api/guilds/:guildId/sync-channels', async (req, res) => {
+    try {
+        const { channels } = req.body; // Array of { channelId, name, botId }
+        const result = await guildService.syncChannels(req.params.guildId, channels);
+        res.json(result);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.delete('/api/guilds/:id', async (req, res) => {
+    try {
+        const guild = await Guild.findById(req.params.id);
+        if (guild) {
+            // Optional: Delete associated channels?
+            // await Channel.deleteMany({ guildId: guild.guildId });
+            await Guild.findByIdAndDelete(req.params.id);
+        }
+        res.json({ success: true });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Static Files (Sau API)
+// app.use(express.static('dashboard'))
 
 /**
  * Thống kê kiến thức
  */
 app.get('/api/knowledge', async (req, res) => {
     try {
-        const data = await getAllKnowledge()
+        const data = await Knowledge.find().sort({ timestamp: -1 });
         res.json(data)
     } catch (error) {
         res.status(500).json({ status: 'error', error: error.message })
@@ -210,25 +296,66 @@ app.get('/api/knowledge', async (req, res) => {
 })
 
 /**
- * Thêm kiến thức mới (Manual)
+ * Thử nghiệm RAG (Playground)
+ */
+app.get('/api/knowledge/test', async (req, res) => {
+    try {
+        const { query, botId } = req.query;
+        if (!query) return res.status(400).json({ error: 'Query is required' });
+
+        let botConfig = { ragMode: 'global' };
+        if (botId) {
+            const bot = await Bot.findById(botId);
+            if (bot) botConfig = bot;
+        }
+
+        const context = await getKnowledgeContext(query, botConfig);
+        res.json({ context });
+    } catch (error) {
+        console.error('RAG Test Error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+const upload = multer({ dest: 'uploads/' })
+
+/**
+ * Thêm kiến thức mới (Manual JSON)
  */
 app.post('/api/knowledge', async (req, res) => {
     try {
-        const { title, content } = req.body
-        const id = uuidv4()
-        const vector = await getEmbedding(content)
+        const { title, content, botId, isGlobal } = req.body;
+        const qdrantId = uuidv4();
+        const vector = await getEmbedding(content);
 
-        await upsertKnowledge(id, vector, { title, content, timestamp: new Date().toISOString() })
+        // Metadata for Qdrant
+        const payload = {
+            title,
+            content,
+            botId: botId || null,
+            isGlobal: isGlobal === 'true' || isGlobal === true
+        };
 
-        res.json({ success: true, id })
+        // 1. Lưu Qdrant
+        await upsertKnowledge(qdrantId, vector, payload);
+
+        // 2. Lưu MongoDB
+        const knowledge = await Knowledge.create({
+            qdrantId,
+            title,
+            content,
+            botId: botId || null,
+            isGlobal: isGlobal === 'true' || isGlobal === true,
+            metadata: { originalFilename: req.file?.originalname }
+        });
+
+        res.json(knowledge);
     } catch (error) {
-        res.status(500).json({ status: 'error', error: error.message })
+        console.error('Error adding knowledge:', error);
+        res.status(500).json({ error: error.message });
     }
-})
+});
 
-/**
- * Upload file tài nguyên
- */
 app.post('/api/knowledge/upload', upload.single('file'), async (req, res) => {
     try {
         if (!req.file) return res.status(400).json({ status: 'error', error: 'No file uploaded' })
@@ -241,22 +368,27 @@ app.post('/api/knowledge/upload', upload.single('file'), async (req, res) => {
         const vector = await getEmbedding(content)
         await upsertKnowledge(id, vector, { title, content, timestamp: new Date().toISOString() })
 
-        // Xóa file tạm sau khi embedding xong
-        fs.unlinkSync(filePath)
+        const knowledge = await Knowledge.create({
+            qdrantId: id,
+            title,
+            content,
+            timestamp: new Date()
+        });
 
-        res.json({ success: true, id, title })
+        fs.unlinkSync(filePath)
+        res.json({ success: true, knowledge })
     } catch (error) {
-        console.error('Upload error:', error)
         res.status(500).json({ status: 'error', error: error.message })
     }
 })
 
-/**
- * Xóa kiến thức
- */
 app.delete('/api/knowledge/:id', async (req, res) => {
     try {
-        await deleteKnowledge(req.params.id)
+        const knowledge = await Knowledge.findById(req.params.id);
+        if (knowledge) {
+            await deleteKnowledge(knowledge.qdrantId)
+            await Knowledge.findByIdAndDelete(req.params.id);
+        }
         res.json({ success: true })
     } catch (error) {
         res.status(500).json({ status: 'error', error: error.message })
@@ -275,28 +407,77 @@ app.get('/api/conversations', async (req, res) => {
     }
 })
 
-/**
- * Trigger đồng bộ từ Discord
- */
 app.post('/api/conversations/sync', async (req, res) => {
     try {
-        if (!client.isReady()) {
-            return res.status(503).json({ success: false, error: 'Discord client is not ready yet.' })
+        const { botId, channelId } = req.body;
+        console.log(`Sync request received - Bot: ${botId || 'Default'}, Channel: ${channelId || 'All'}`);
+
+        let targetClient;
+        if (botId) {
+            targetClient = botManager.clients.get(botId);
+        } else {
+            // Fallback to first active bot if no botId provided
+            targetClient = [...botManager.clients.values()][0];
         }
-        const count = await syncDiscordHistory(client)
-        res.json({ success: true, count })
+
+        if (!targetClient || !targetClient.isReady()) {
+            return res.status(503).json({
+                success: false,
+                error: 'Discord client không khả dụng hoặc chưa sẵn sàng.'
+            });
+        }
+
+        const count = await syncDiscordHistory(targetClient, channelId);
+        res.json({ success: true, count });
     } catch (error) {
-        console.error('Sync error:', error)
-        res.status(500).json({ success: false, error: error.message })
+        console.error('Error in /api/conversations/sync:', error);
+        res.status(500).json({ success: false, error: error.message });
     }
-})
+});
 
-// --- Static Files & Fallback ---
-app.use(express.static('dashboard'))
+/**
+ * Chat trực tiếp với Bot (Playground)
+ */
+app.post('/api/chat', async (req, res) => {
+    try {
+        const { botId, message, chatContext } = req.body;
+        if (!botId || !message) {
+            return res.status(400).json({ error: 'botId and message are required' });
+        }
 
-// Khởi tạo Qdrant khi start server
-initCollection()
+        const bot = await Bot.findById(botId);
+        if (!bot) {
+            return res.status(404).json({ error: 'Bot không tồn tại' });
+        }
 
-app.listen(PORT, () => {
-    console.log(`🚀 Alice Dashboard API running at http://localhost:${PORT}`)
-})
+        // Thực hiện chat với AI, yêu cầu chi tiết RAG
+        const result = await getAIResponse(
+            message,
+            bot,
+            chatContext,
+            '', // availableRoles
+            '', // availableChannels
+            true // withDetail (RAG Debug)
+        );
+
+        res.json(result);
+    } catch (error) {
+        console.error('API Chat Error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Khởi tạo
+const startServer = async () => {
+    await connectDB();
+    await initCollection();
+
+    // Khởi tạo bots trong process này để API có thể truy cập Discord client
+    await botManager.initializeBots();
+
+    app.listen(PORT, () => {
+        console.log(`🚀 Alice Dashboard API running at http://localhost:${PORT}`)
+    })
+}
+
+startServer();

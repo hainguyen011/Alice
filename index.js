@@ -120,7 +120,8 @@ client.on(Events.MessageCreate, async (message) => {
     }
 
     // Truyền context, roles và channels cho AI
-    const aiText = await getAIResponse(content, '', availableRoles, availableChannels)
+    const aiResponse = await getAIResponse(content, {}, '', availableRoles, availableChannels)
+    const aiText = typeof aiResponse === 'string' ? aiResponse : aiResponse.text;
     const embed = createSuccessEmbed(aiText)
     await message.reply({ embeds: [embed] })
 

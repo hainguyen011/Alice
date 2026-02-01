@@ -24,6 +24,20 @@ export const initCollection = async () => {
             })
             console.log(`✅ Created collection: ${COLLECTION_NAME}`)
         }
+
+        // Đảm bảo Payload Indexes tồn tại để filtering chuyên nghiệp
+        await client.createPayloadIndex(COLLECTION_NAME, {
+            field_name: 'botId',
+            field_schema: 'keyword',
+            wait: true
+        });
+        await client.createPayloadIndex(COLLECTION_NAME, {
+            field_name: 'isGlobal',
+            field_schema: 'bool',
+            wait: true
+        });
+        console.log(`📡 Qdrant Payload Indexes ensured.`);
+
     } catch (error) {
         console.error('Qdrant Init Error:', error)
     }
@@ -40,7 +54,7 @@ export const upsertKnowledge = async (id, vector, payload) => {
                 {
                     id: id,
                     vector: vector,
-                    payload: payload
+                    payload: payload // Payload includes botId, isGlobal, content, title
                 }
             ]
         })
@@ -51,19 +65,52 @@ export const upsertKnowledge = async (id, vector, payload) => {
 }
 
 /**
- * Tìm kiếm kiến thức liên quan nhất
+ * Tìm kiếm kiến thức liên quan nhất với bộ lọc metadata
  */
-export const searchKnowledge = async (vector, limit = 3) => {
+export const searchKnowledge = async (vector, limit = 3, filter = null) => {
     try {
-        const results = await client.search(COLLECTION_NAME, {
+        const searchParams = {
             vector: vector,
             limit: limit,
             with_payload: true
-        })
+        };
+
+        if (filter) {
+            searchParams.filter = filter;
+        }
+
+        const results = await client.search(COLLECTION_NAME, searchParams)
         return results.map(r => r.payload.content).join('\n---\n')
     } catch (error) {
         console.error('Qdrant Search Error:', error)
         return ''
+    }
+}
+
+/**
+ * Tìm kiếm kiến thức kèm theo đầy đủ metadata và điểm số (cho Playground)
+ */
+export const searchKnowledgeDetail = async (vector, limit = 3, filter = null) => {
+    try {
+        const searchParams = {
+            vector: vector,
+            limit: limit,
+            with_payload: true
+        };
+
+        if (filter) {
+            searchParams.filter = filter;
+        }
+
+        const results = await client.search(COLLECTION_NAME, searchParams)
+        return results.map(r => ({
+            id: r.id,
+            score: r.score,
+            payload: r.payload
+        }));
+    } catch (error) {
+        console.error('Qdrant Search Detail Error:', error)
+        return []
     }
 }
 

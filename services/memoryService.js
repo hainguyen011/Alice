@@ -1,4 +1,3 @@
-import { ALICE_CONFIG } from '../config/aliceConfig.js';
 
 // Map lưu trữ bộ nhớ: channelId -> { messages: [], lastActivity: Date, timer: Timeout }
 const memoryStore = new Map();
