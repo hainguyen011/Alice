@@ -21,8 +21,8 @@ export default {
                 border: 'rgba(255, 255, 255, 0.08)',
             },
             fontFamily: {
-                inter: ['Inter', 'sans-serif'],
-                jakarta: ['"Plus Jakarta Sans"', 'Inter', 'sans-serif'],
+                sans: ['"Be Vietnam Pro"', 'sans-serif'],
+                mono: ['"JetBrains Mono"', 'monospace'],
             },
             backdropBlur: {
                 '2xl': '20px',

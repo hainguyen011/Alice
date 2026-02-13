@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { conversationsApi, botsApi } from '../services/api';
 import {
     MessageSquare,
@@ -13,6 +14,7 @@ import {
     Shield,
     Trash2,
     Maximize2,
+    Minimize2,
     Plus,
     Loader2,
     AlertCircle,
@@ -35,6 +37,7 @@ const Conversations = () => {
     const [playgroundMessages, setPlaygroundMessages] = useState([]);
     const [isSending, setIsSending] = useState(false);
     const [activeRagContext, setActiveRagContext] = useState(null);
+    const [isViewingFullChat, setIsViewingFullChat] = useState(false);
 
     const scrollRef = useRef(null);
 
@@ -138,7 +141,7 @@ const Conversations = () => {
     );
 
     return (
-        <div className="h-[calc(100vh-120px)] flex flex-col animate-in fade-in duration-700 overflow-hidden">
+        <div className="h-[calc(100vh-120px)] flex flex-col animate-in fade-in duration-700 overflow-hidden pb-[2%]">
             {/* Top Navigation */}
             <div className="flex items-center justify-between mb-4 shrink-0 px-1">
                 <div className="flex bg-black/40 p-1 rounded-xl border border-white/5 backdrop-blur-md">
@@ -246,8 +249,12 @@ const Conversations = () => {
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        <button className="p-2 text-muted hover:text-white hover:bg-white/5 rounded-lg transition-all" title="View Source">
-                                            <ExternalLink size={14} />
+                                        <button
+                                            onClick={() => setIsViewingFullChat(true)}
+                                            className="p-2 text-muted hover:text-white hover:bg-white/5 rounded-lg transition-all"
+                                            title="View Full Chat"
+                                        >
+                                            <Maximize2 size={14} />
                                         </button>
                                         <button className="p-2 text-muted hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all" title="Delete Session">
                                             <Trash2 size={14} />
@@ -256,33 +263,31 @@ const Conversations = () => {
                                 </div>
                                 <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-4 scrollbar-thin bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-primary/[0.02] via-transparent to-transparent">
                                     {selectedSession.messages.map((msg, i) => (
-                                        <div key={i} className="flex flex-col gap-2 group animate-in fade-in slide-in-from-bottom-1 duration-300">
-                                            {/* User Message */}
-                                            <div className="flex flex-col items-start max-w-[85%] self-start">
-                                                <div className="flex items-center gap-2 mb-1 px-1">
-                                                    <span className="text-[9px] font-black uppercase tracking-widest text-white/30">{msg.username}</span>
-                                                    <span className="text-[8px] text-muted/30 font-bold font-mono opacity-0 group-hover:opacity-100 transition-opacity">
-                                                        {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                                    </span>
-                                                </div>
-                                                <div className="bg-white/[0.03] p-3.5 px-4.5 rounded-2xl rounded-tl-none text-[13px] font-medium leading-[1.6] text-white/80 border border-white/5 shadow-sm hover:border-white/10 transition-colors backdrop-blur-[2px]">
+                                        <div key={i} className="flex flex-col gap-6 group animate-in fade-in slide-in-from-bottom-2 duration-500">
+                                            {/* User Message (Right) */}
+                                            <div className="flex flex-col items-end max-w-[70%] self-end">
+                                                <div className="bg-primary/20 text-white p-4 rounded-2xl rounded-tr-sm text-sm shadow-md border border-primary/10 backdrop-blur-sm relative group/msg">
                                                     {msg.message || msg.content}
+                                                </div>
+                                                <div className="text-[10px] text-muted mt-1.5 font-mono opacity-40 font-medium">
+                                                    {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                                 </div>
                                             </div>
 
-                                            {/* AI Response Breakdown (Optional if logic separates them) */}
+                                            {/* AI Response (Left) */}
                                             {(msg.response || msg.role === 'ai') && (
-                                                <div className="flex flex-col items-end max-w-[85%] self-end animate-in fade-in slide-in-from-right-2 duration-500">
-                                                    <div className="flex items-center gap-2 mb-1 px-1 flex-row-reverse">
-                                                        <span className="text-[9px] font-black uppercase tracking-widest text-success/50">Alice Response</span>
-                                                        <span className="text-[8px] text-muted/30 font-bold font-mono opacity-0 group-hover:opacity-100 transition-opacity">
-                                                            {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                                        </span>
+                                                <div className="flex flex-row items-start max-w-[75%] self-start gap-4">
+                                                    <div className="w-8 h-8 rounded-xl bg-white/5 flex items-center justify-center shrink-0 border border-white/10 mt-1 shadow-sm">
+                                                        <BotIcon size={16} className="text-primary" />
                                                     </div>
-                                                    <div className="bg-primary/5 p-4 px-5 rounded-2xl rounded-tr-none text-[13.5px] font-medium leading-[1.7] text-white/90 border border-primary/20 shadow-lg border-r-2 border-r-primary relative overflow-hidden group/ai">
-                                                        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-50" />
-                                                        <div className="relative z-10">
+                                                    <div className="flex flex-col gap-1.5">
+                                                        <div className="bg-surface/90 text-white/90 p-5 rounded-2xl rounded-tl-sm text-sm shadow-lg border border-white/5 leading-relaxed">
                                                             {msg.response || msg.content}
+                                                        </div>
+                                                        <div className="flex gap-3 px-1">
+                                                            <span className="text-[10px] text-muted font-mono opacity-40 font-medium">
+                                                                Alice • {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                            </span>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -465,6 +470,83 @@ const Conversations = () => {
                     </div>
                 </div>
             )}
+
+            {/* Full Chat Modal */}
+            <AnimatePresence>
+                {isViewingFullChat && selectedSession && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-background/95 backdrop-blur-md"
+                    >
+                        <motion.div
+                            initial={{ scale: 0.8, opacity: 0, y: 20 }}
+                            animate={{ scale: 1, opacity: 1, y: 0 }}
+                            exit={{ scale: 0.8, opacity: 0, y: 20 }}
+                            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                            className="w-full max-w-5xl h-[90vh] glass-card flex flex-col overflow-hidden shadow-2xl"
+                        >
+                            {/* Modal Header */}
+                            <div className="px-6 py-4 border-b border-white/5 flex items-center justify-between bg-surface/80 backdrop-blur-xl">
+                                <div className="flex items-center gap-4">
+                                    <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary border border-primary/5">
+                                        <User size={20} />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-base font-bold text-white">{selectedSession.username}</h3>
+                                        <p className="text-[10px] text-muted-foreground font-medium">Full Conversation History</p>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={() => setIsViewingFullChat(false)}
+                                    className="p-2 text-muted hover:text-white hover:bg-white/5 rounded-lg transition-all"
+                                    title="Close Full View"
+                                >
+                                    <Minimize2 size={18} />
+                                </button>
+                            </div>
+
+                            {/* Modal Content */}
+                            <div className="flex-1 overflow-y-auto p-8 space-y-6 scrollbar-thin">
+                                {selectedSession.messages.map((msg, i) => (
+                                    <div key={i} className="flex flex-col gap-6 group animate-in fade-in slide-in-from-bottom-2 duration-500">
+                                        {/* User Message (Right) */}
+                                        <div className="flex flex-col items-end max-w-[70%] self-end">
+                                            <div className="bg-primary/20 text-white p-4 rounded-2xl rounded-tr-sm text-sm shadow-md border border-primary/10 backdrop-blur-sm">
+                                                {msg.message || msg.content}
+                                            </div>
+                                            <div className="text-[10px] text-muted mt-1.5 font-mono opacity-40 font-medium">
+                                                {new Date(msg.timestamp).toLocaleString()}
+                                            </div>
+                                        </div>
+
+                                        {/* AI Response (Left) */}
+                                        {(msg.response || msg.role === 'ai') && (
+                                            <div className="flex flex-row items-start max-w-[75%] self-start gap-4">
+                                                <div className="w-8 h-8 rounded-xl bg-white/5 flex items-center justify-center shrink-0 border border-white/10 mt-1 shadow-sm">
+                                                    <BotIcon size={16} className="text-primary" />
+                                                </div>
+                                                <div className="flex flex-col gap-1.5">
+                                                    <div className="bg-surface/90 text-white/90 p-5 rounded-2xl rounded-tl-sm text-sm shadow-lg border border-white/5 leading-relaxed">
+                                                        {msg.response || msg.content}
+                                                    </div>
+                                                    <div className="flex gap-3 px-1">
+                                                        <span className="text-[10px] text-muted font-mono opacity-40 font-medium">
+                                                            Alice • {new Date(msg.timestamp).toLocaleString()}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 };

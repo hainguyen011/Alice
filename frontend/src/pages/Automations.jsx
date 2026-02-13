@@ -56,25 +56,27 @@ const Automations = () => {
     };
 
     return (
-        <div className="space-y-8 animate-in fade-in duration-700 pb-20">
+        <div className="space-y-8 animate-in fade-in duration-700 pb-[5%]">
             {/* Header Section */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                    <h2 className="text-2xl font-black tracking-tight flex items-center gap-3 font-jakarta">
-                        <div className="p-2.5 rounded-2xl bg-primary/20 text-primary border border-primary/5">
-                            <Zap size={24} />
-                        </div>
-                        Nexus Automations
-                    </h2>
-                    <p className="text-muted text-[11px] font-bold uppercase tracking-[0.2em] mt-2 opacity-60">
-                        Thiết lập kịch bản & tự động hóa phản hồi thông minh
-                    </p>
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-surface-glass/30 p-3 rounded-xl border border-white/5">
+                <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary border border-primary/20">
+                        <Zap size={20} />
+                    </div>
+                    <div>
+                        <h2 className="text-base font-bold text-white leading-tight">
+                            Nexus Automations
+                        </h2>
+                        <p className="text-[10px] text-muted-foreground font-medium">
+                            Thiết lập kịch bản & tự động hóa
+                        </p>
+                    </div>
                 </div>
 
                 <div className="flex items-center gap-4">
                     <button
                         onClick={() => setIsAdding(true)}
-                        className="btn-primary px-6 py-3 text-xs font-black uppercase tracking-widest flex items-center gap-2 group"
+                        className="btn-primary px-4 py-2 text-xs font-black uppercase tracking-widest flex items-center gap-2 group"
                     >
                         <Plus size={16} className="group-hover:rotate-90 transition-transform" />
                         Tạo Kịch Bản Mới

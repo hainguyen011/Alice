@@ -18,7 +18,7 @@ export const initCollection = async () => {
         if (!exists) {
             await client.createCollection(COLLECTION_NAME, {
                 vectors: {
-                    size: 768, // Kích thước vector của text-embedding-004
+                    size: 3072, // Kích thước vector của gemini-embedding-001
                     distance: 'Cosine'
                 }
             })

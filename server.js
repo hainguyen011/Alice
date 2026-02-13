@@ -14,9 +14,12 @@ import { getConversations, syncDiscordHistory } from './services/conversationSer
 import { botManager } from './services/botService.js'
 import { guildService } from './services/guildService.js'
 import multer from 'multer'
-import fs from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
+import cookieParser from 'cookie-parser'
+import * as authController from './controllers/authController.js'
+import { authMiddleware } from './middleware/authMiddleware.js'
+
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -24,8 +27,32 @@ const __dirname = path.dirname(__filename)
 const app = express()
 const PORT = process.env.DASHBOARD_PORT || 3000
 
-app.use(cors())
+const allowedOrigins = [
+    'http://localhost:5173',
+    'http://localhost:5174',
+    'http://127.0.0.1:5173',
+    'http://127.0.0.1:5174'
+];
+
+app.use((req, res, next) => {
+    const origin = req.headers.origin;
+    if (allowedOrigins.includes(origin) || origin === process.env.FRONTEND_URL) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+    }
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, DELETE, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Cookie');
+
+    if (req.method === 'OPTIONS') {
+        return res.sendStatus(200);
+    }
+    next();
+});
+
+
 app.use(express.json())
+app.use(cookieParser())
+
 
 // Middleware log yêu cầu
 app.use((req, res, next) => {
@@ -36,6 +63,22 @@ app.use((req, res, next) => {
 // --- API Routes (PHẢI TRƯỚC STATIC ĐỂ TRÁNH CONFLICT) ---
 
 app.get('/api/health', (req, res) => res.json({ status: 'ok', time: new Date() }));
+
+// --- Auth Routes ---
+app.post('/api/auth/login', authController.login);
+app.post('/api/auth/refresh', authController.refresh);
+app.post('/api/auth/logout', authController.logout);
+
+// --- Protected Routes Middleware ---
+// Bảo vệ tất cả các API phía dưới trừ health check và auth
+app.use('/api', (req, res, next) => {
+    const publicPaths = ['/health', '/auth/login', '/auth/refresh', '/auth/logout'];
+    if (publicPaths.some(path => req.path === path)) {
+        return next();
+    }
+    return authMiddleware(req, res, next);
+});
+
 
 /**
  * AI Utilities

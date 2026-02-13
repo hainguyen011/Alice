@@ -21,6 +21,8 @@ const Knowledge = () => {
     const [knowledge, setKnowledge] = useState([]);
     const [bots, setBots] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [deletingIds, setDeletingIds] = useState(new Set());
 
     // Ingestion States
     const [ingestTab, setIngestTab] = useState('manual'); // 'manual' | 'bulk'
@@ -64,6 +66,7 @@ const Knowledge = () => {
     const handleAddKnowledge = async (e) => {
         e.preventDefault();
         try {
+            setIsSubmitting(true);
             await knowledgeApi.create({
                 ...formData,
                 botId: formData.botId === 'global' ? null : formData.botId,
@@ -73,16 +76,25 @@ const Knowledge = () => {
             fetchData();
         } catch (err) {
             console.error('Error adding knowledge:', err);
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
     const handleDelete = async (id) => {
         if (!confirm('Bạn có chắc chắn muốn xóa tri thức này không?')) return;
         try {
+            setDeletingIds(prev => new Set(prev).add(id));
             await knowledgeApi.delete(id);
             fetchData();
         } catch (err) {
             console.error('Error deleting knowledge:', err);
+        } finally {
+            setDeletingIds(prev => {
+                const newSet = new Set(prev);
+                newSet.delete(id);
+                return newSet;
+            });
         }
     };
 
@@ -128,22 +140,22 @@ const Knowledge = () => {
     }, [knowledge, searchQuery, filterBot]);
 
     return (
-        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
+        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-[5%]">
             {/* Header Stats */}
-            <div className="flex flex-col md:flex-row gap-6">
-                <div className="glass-card p-6 flex items-center gap-4 min-w-[240px]">
-                    <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
-                        <Database size={24} />
+            <div className="flex flex-col md:flex-row gap-4 bg-surface-glass/30 p-3 rounded-xl border border-white/5">
+                <div className="flex items-center gap-3 min-w-[200px]">
+                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+                        <Database size={20} />
                     </div>
                     <div>
-                        <p className="text-[10px] uppercase tracking-widest text-muted font-bold">Vector Database</p>
-                        <p className="text-2xl font-black">{knowledge.length} <span className="text-sm font-medium text-muted">Entries</span></p>
+                        <h1 className="text-base font-bold text-white leading-tight">Vector Database</h1>
+                        <p className="text-[10px] text-muted-foreground font-medium">{knowledge.length} Entries</p>
                     </div>
                 </div>
 
-                <div className="glass-card p-6 flex items-center gap-4 flex-1">
-                    <Info size={20} className="text-info shrink-0" />
-                    <p className="text-xs text-muted leading-relaxed">
+                <div className="flex items-center gap-3 flex-1 border-l border-white/5 pl-4">
+                    <Info size={16} className="text-info shrink-0" />
+                    <p className="text-[10px] text-muted leading-relaxed">
                         Hệ thống Retrieval-Augmented Generation (RAG) sử dụng Qdrant Vector DB để cung cấp ngữ cảnh chính xác cho AI.
                         Bạn có thể nạp tri thức toàn cục hoặc giới hạn cho từng Bot cụ thể.
                     </p>
@@ -183,7 +195,7 @@ const Knowledge = () => {
                                         <input
                                             type="text"
                                             className="input-field w-full px-4 py-3 text-sm"
-                                            placeholder="e.g., Quy trình hoàn tiền khách hàng"
+                                            placeholder="e.g., Nội dung kênh chat"
                                             value={formData.title}
                                             onChange={e => setFormData({ ...formData, title: e.target.value })}
                                             required
@@ -209,8 +221,9 @@ const Knowledge = () => {
                                             required
                                         />
                                     </div>
-                                    <button type="submit" className="btn-primary w-full py-3">
-                                        <CloudUpload size={18} /> Process & Embed
+                                    <button type="submit" className="btn-primary w-full py-3" disabled={isSubmitting}>
+                                        {isSubmitting ? <Loader2 size={18} className="animate-spin" /> : <CloudUpload size={18} />}
+                                        {isSubmitting ? 'Processing...' : 'Process & Embed'}
                                     </button>
                                 </form>
                             ) : (
@@ -383,10 +396,11 @@ const Knowledge = () => {
                                             <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0">
                                                 <button
                                                     onClick={() => handleDelete(item._id)}
-                                                    className="p-2.5 text-muted hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all"
+                                                    className="p-2.5 text-muted hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                                                     title="Delete tri thức"
+                                                    disabled={deletingIds.has(item._id)}
                                                 >
-                                                    <Trash2 size={16} />
+                                                    {deletingIds.has(item._id) ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
                                                 </button>
                                             </div>
                                         </div>

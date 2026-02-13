@@ -154,21 +154,21 @@ const Servers = () => {
             initial="hidden"
             animate="visible"
             variants={containerVariants}
-            className="h-[calc(100vh-140px)] flex flex-col gap-6"
+            className="h-[calc(100vh-140px)] flex flex-col gap-6 pb-[2%]"
         >
             {/* Header Section */}
-            <header className="flex justify-between items-center bg-surface-glass/30 p-4 rounded-2xl border border-white/5">
-                <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary border border-primary/20">
-                        <Server size={24} />
+            <header className="flex justify-between items-center bg-surface-glass/30 p-3 rounded-xl border border-white/5">
+                <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary border border-primary/20">
+                        <Server size={20} />
                     </div>
                     <div>
-                        <h1 className="text-lg font-black tracking-tight text-white">Quản lý Server</h1>
-                        <p className="text-[10px] text-muted font-bold uppercase tracking-widest opacity-60">Kết nối & Cấu hình Discord Guilds</p>
+                        <h1 className="text-base font-bold text-white leading-tight">Quản lý Server</h1>
+                        <p className="text-[10px] text-muted-foreground font-medium">Kết nối & Cấu hình Discord Guilds</p>
                     </div>
                 </div>
-                <button onClick={() => setIsAdding(true)} className="btn-primary group">
-                    <Plus size={20} className="group-hover:rotate-90 transition-transform duration-300" />
+                <button onClick={() => setIsAdding(true)} className="btn-primary py-2 px-4 text-xs group">
+                    <Plus size={16} className="group-hover:rotate-90 transition-transform duration-300" />
                     <span>Thêm Server Mới</span>
                 </button>
             </header>

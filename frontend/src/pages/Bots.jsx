@@ -10,6 +10,8 @@ const Bots = () => {
     const [loading, setLoading] = useState(true);
     const [modalOpen, setModalOpen] = useState(false);
     const [editingBot, setEditingBot] = useState(null);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
     const [activeTab, setActiveTab] = useState('general'); // general, model, advanced
     const [availableModels, setAvailableModels] = useState([]);
     const [isFetchingModels, setIsFetchingModels] = useState(false);
@@ -117,6 +119,7 @@ const Bots = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
+            setIsSubmitting(true);
             const data = { ...formData };
             if (!data.bot_token && editingBot) delete data.bot_token;
             if (!data.api_key && editingBot) delete data.api_key;
@@ -130,6 +133,8 @@ const Bots = () => {
             fetchBots();
         } catch (err) {
             alert(`Error saving bot: ${err.message}`);
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -137,11 +142,14 @@ const Bots = () => {
         if (!editingBot) return;
         if (!confirm(`Bạn có chắc muốn xóa bot "${editingBot.name}"?`)) return;
         try {
+            setIsDeleting(true);
             await botsApi.delete(editingBot._id);
             setModalOpen(false);
             fetchBots();
         } catch (err) {
             alert(`Error deleting bot: ${err.message}`);
+        } finally {
+            setIsDeleting(false);
         }
     };
 
@@ -155,28 +163,28 @@ const Bots = () => {
     };
 
     return (
-        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
+        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-[5%]">
             {/* Page Header */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-surface-glass/30 py-3 px-5 rounded-2xl border border-white/5">
-                <div className="flex items-center gap-4">
-                    <div className="w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
-                        <Bot size={22} />
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-surface-glass/30 py-3 px-4 rounded-xl border border-white/5">
+                <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+                        <Bot size={20} />
                     </div>
                     <div>
-                        <h1 className="text-xl font-black tracking-tight">Bot Persona Management</h1>
-                        <p className="text-xs text-muted font-medium uppercase tracking-wider opacity-60">Configure and manage AI assistants</p>
+                        <h1 className="text-base font-bold text-white leading-tight">Bot Persona Management</h1>
+                        <p className="text-[10px] text-muted-foreground font-medium">Configure and manage AI assistants</p>
                     </div>
                 </div>
                 <div className="flex items-center gap-3 w-full md:w-auto">
                     <div className="bg-white/5 px-3 py-1.5 rounded-lg border border-white/5 hidden xl:block">
-                        <p className="text-[9px] uppercase tracking-tighter text-muted font-bold">Active Instances</p>
-                        <p className="text-lg font-black text-success leading-none mt-0.5">{bots.filter(b => b.isActive).length}</p>
+                        <p className="text-[8px] uppercase tracking-tighter text-muted font-bold">Active Instances</p>
+                        <p className="text-sm font-black text-success leading-none mt-0.5">{bots.filter(b => b.isActive).length}</p>
                     </div>
                     <button
                         onClick={() => handleOpenModal()}
-                        className="btn-primary flex-1 md:flex-none py-3 shadow-lg shadow-primary/20"
+                        className="btn-primary flex-1 md:flex-none py-2 px-4 shadow-lg shadow-primary/20 text-xs"
                     >
-                        <Plus size={20} /> Create New Bot
+                        <Plus size={16} /> Create New Bot
                     </button>
                 </div>
             </div>
@@ -428,7 +436,7 @@ const Bots = () => {
                                     type="button"
                                     className="text-red-500 hover:text-red-400 font-bold text-sm flex items-center gap-2 transition-colors"
                                 >
-                                    <Trash2 size={16} /> Delete Persona
+                                    <Trash2 size={16} /> {isDeleting ? 'Deleting...' : 'Delete Persona'}
                                 </button>
                             )}
                             <div className="flex gap-4 ml-auto">
@@ -443,8 +451,9 @@ const Bots = () => {
                                     form="bot-form"
                                     type="submit"
                                     className="btn-primary min-w-[180px] shadow-lg shadow-primary/20"
+                                    disabled={isSubmitting || isDeleting}
                                 >
-                                    <Save size={18} /> {editingBot ? 'Save System Changes' : 'Initialize Persona'}
+                                    <Save size={18} /> {isSubmitting ? 'Saving...' : editingBot ? 'Save System Changes' : 'Initialize Persona'}
                                 </button>
                             </div>
                         </div>

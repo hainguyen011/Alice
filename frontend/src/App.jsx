@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import Sidebar from './components/Sidebar.jsx';
+import React from 'react';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import Home from './pages/Home.jsx';
 import Dashboard from './pages/Dashboard.jsx';
 import Knowledge from './pages/Knowledge.jsx';
@@ -9,62 +9,44 @@ import Servers from './pages/Servers.jsx';
 import Automations from './pages/Automations.jsx';
 import Insights from './pages/Insights.jsx';
 import Memory from './pages/Memory.jsx';
-import LogBar from './components/LogBar.jsx';
+import Login from './pages/Login.jsx';
+import MainLayout from './layouts/MainLayout.jsx';
+import ProtectedRoute from './components/ProtectedRoute.jsx';
+import { useAuth } from './context/AuthContext.jsx';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState('home');
+  const { loading } = useAuth();
 
-  const renderContent = () => {
-    switch (activeTab) {
-      case 'home':
-        return <Home />;
-      case 'dashboard':
-        return <Dashboard />;
-      case 'knowledge':
-        return <Knowledge />;
-      case 'conversations':
-        return <Conversations />;
-      case 'bots':
-        return <Bots />;
-      case 'servers':
-        return <Servers />;
-      case 'automations':
-        return <Automations />;
-      case 'insights':
-        return <Insights />;
-      case 'memory':
-        return <Memory />;
-      default:
-        return <Home />;
-    }
-  };
+  if (loading) {
+    return (
+      <div className="h-screen bg-background flex items-center justify-center">
+        <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   return (
-    <div className="flex h-screen bg-background text-white selection:bg-primary/30">
-      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
+    <Routes>
+      <Route path="/login" element={<Login />} />
 
-      <main className="flex-1 flex flex-col overflow-hidden relative">
-        {/* Top Bar */}
-        <header className="h-16 border-b border-border bg-surface/50 flex items-center justify-between px-8 shrink-0 z-40">
-          <div className="flex items-center gap-4">
-            <h1 className="text-lg font-bold tracking-tight capitalize">{activeTab}</h1>
-            <div className="h-4 border-l border-border mx-2" />
-            <span className="text-xs text-muted font-medium uppercase tracking-widest opacity-50">Alice Management</span>
-          </div>
-          <div className="flex items-center gap-3 bg-white/3 px-4 py-2 rounded-full border border-border">
-            <div className="w-2 h-2 rounded-full bg-success" />
-            <span className="text-xs font-bold tracking-wide">Alice System</span>
-          </div>
-        </header>
+      {/* Protected Routes with MainLayout */}
+      <Route element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
+        <Route index element={<Navigate to="/home" replace />} />
+        <Route path="/home" element={<Home />} />
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/knowledge" element={<Knowledge />} />
+        <Route path="/conversations" element={<Conversations />} />
+        <Route path="/bots" element={<Bots />} />
+        <Route path="/servers" element={<Servers />} />
+        <Route path="/automations" element={<Automations />} />
+        <Route path="/insights" element={<Insights />} />
+        <Route path="/memory" element={<Memory />} />
+      </Route>
 
-        {/* Content Area */}
-        <div className="flex-1 overflow-y-auto p-8 pb-10 scrollbar-thin">
-          {renderContent()}
-        </div>
-
-        {/* Persistent Bottom Log Bar */}
-        <LogBar />
-      </main>
-    </div>
+      {/* Fallback */}
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
   );
 }
+
+

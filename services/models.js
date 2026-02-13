@@ -60,8 +60,17 @@ const channelSchema = new mongoose.Schema({
     metadata: mongoose.Schema.Types.Mixed
 }, { timestamps: true });
 
+const userSchema = new mongoose.Schema({
+    username: { type: String, required: true, unique: true },
+    password: { type: String, required: true },
+    refreshToken: { type: String },
+    role: { type: String, enum: ['admin'], default: 'admin' }
+}, { timestamps: true });
+
 export const Bot = mongoose.model('Bot', botSchema);
 export const Conversation = mongoose.model('Conversation', conversationSchema);
 export const Knowledge = mongoose.model('Knowledge', knowledgeSchema);
 export const Guild = mongoose.model('Guild', guildSchema);
 export const Channel = mongoose.model('Channel', channelSchema);
+export const User = mongoose.model('User', userSchema);
+

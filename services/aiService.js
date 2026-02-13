@@ -72,7 +72,7 @@ ${prompt}
 export const getEmbedding = async (text, apiKey = null) => {
     try {
         const genAIInstance = getGenAI(apiKey);
-        const embeddingModel = genAIInstance.getGenerativeModel({ model: 'text-embedding-004' })
+        const embeddingModel = genAIInstance.getGenerativeModel({ model: 'gemini-embedding-001' })
         const result = await embeddingModel.embedContent(text)
         return result.embedding.values
     } catch (error) {
