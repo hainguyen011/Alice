@@ -3,6 +3,7 @@ import { Client, GatewayIntentBits, Collection } from 'discord.js';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { logger } from './loggerService.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -14,7 +15,7 @@ class BotManager {
 
     async initializeBots() {
         const activeBots = await Bot.find({ isActive: true });
-        console.log(`🤖 Found ${activeBots.length} active bots to initialize.`);
+        logger.system(`🤖 Found ${activeBots.length} active bots to initialize.`);
 
         for (const botData of activeBots) {
             await this.startBot(botData);
@@ -22,8 +23,9 @@ class BotManager {
     }
 
     async startBot(botData) {
-        if (this.clients.has(botData._id.toString())) {
-            console.log(`⚠️ Bot ${botData.name} is already running.`);
+        const botId = botData._id.toString();
+        if (this.clients.has(botId)) {
+            logger.warn(`Bot ${botData.name} is already running.`, botId);
             return;
         }
 
@@ -49,7 +51,7 @@ class BotManager {
         }
 
         client.once('ready', () => {
-            console.log(`✅ ${botData.name} logged in as ${client.user.tag}`);
+            logger.info(`✅ ${botData.name} logged in as ${client.user.tag}`, botId);
         });
 
         client.on('messageCreate', async (message) => {
@@ -146,6 +148,8 @@ class BotManager {
 
                 await message.reply({ embeds: [embed] });
 
+                logger.ai(`Generated response for ${message.author.username}`, botId);
+
                 // 5. Lưu phản hồi của Bot và bộ nhớ
                 addMessageToMemory(
                     message.channelId,
@@ -162,16 +166,16 @@ class BotManager {
                     botData._id
                 );
             } catch (error) {
-                console.error(`Error in bot ${botData.name} message handler:`, error);
+                logger.error(`Error in bot ${botData.name} message handler: ${error.message}`, botId);
             }
         });
 
         try {
             await client.login(botData.bot_token);
-            this.clients.set(botData._id.toString(), client);
-            console.log(`✅ ${botData.name} successfully connected to Discord!`);
+            this.clients.set(botId, client);
+            logger.info(`✅ ${botData.name} successfully connected to Discord!`, botId);
         } catch (error) {
-            console.error(`❌ Failed to login bot ${botData.name}:`, error.message);
+            logger.error(`❌ Failed to login bot ${botData.name}: ${error.message}`, botId);
         }
     }
 

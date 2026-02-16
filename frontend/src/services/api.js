@@ -116,5 +116,18 @@ export const scriptsApi = {
     run: (id, data) => api.post(`/scripts/${id}/run`, data)
 };
 
+export const campaignsApi = {
+    getAll: () => api.get('/campaigns'),
+    create: (data) => api.post('/campaigns', data),
+    update: (id, data) => api.patch(`/campaigns/${id}`, data),
+    delete: (id) => api.delete(`/campaigns/${id}`),
+    getChapters: (id) => api.get(`/campaigns/${id}/chapters`),
+    generateNext: (id, userInstruction) => api.post(`/campaigns/${id}/generate`, { userInstruction }),
+    updateChapter: (id, data) => api.patch(`/chapters/${id}`, data),
+    regenerateContent: (id) => api.post(`/chapters/${id}/regenerate-content`),
+    regenerateImage: (id, data) => api.post(`/chapters/${id}/regenerate-image`, data),
+    publishChapter: (id) => api.post(`/chapters/${id}/publish`)
+};
+
 
 export default api;

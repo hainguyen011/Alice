@@ -11,9 +11,11 @@ import Automations from './pages/Automations.jsx';
 import Insights from './pages/Insights.jsx';
 import Memory from './pages/Memory.jsx';
 import Login from './pages/Login.jsx';
+import Campaigns from './pages/Campaigns.jsx';
 import MainLayout from './layouts/MainLayout.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 import { useAuth } from './context/AuthContext.jsx';
+import { Toaster } from 'react-hot-toast';
 
 export default function App() {
   const { loading } = useAuth();
@@ -27,27 +29,31 @@ export default function App() {
   }
 
   return (
-    <Routes>
-      <Route path="/login" element={<Login />} />
+    <>
+      <Routes>
+        <Route path="/login" element={<Login />} />
 
-      {/* Protected Routes with MainLayout */}
-      <Route element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
-        <Route index element={<Navigate to="/home" replace />} />
-        <Route path="/home" element={<Home />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/knowledge" element={<Knowledge />} />
-        <Route path="/conversations" element={<Conversations />} />
-        <Route path="/bots" element={<Bots />} />
-        <Route path="/servers" element={<Servers />} />
-        <Route path="/automations" element={<Automations />} />
-        <Route path="/insights" element={<Insights />} />
-        <Route path="/memory" element={<Memory />} />
-        <Route path="/posts" element={<Posts />} />
-      </Route>
+        {/* Protected Routes with MainLayout */}
+        <Route element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
+          <Route index element={<Navigate to="/home" replace />} />
+          <Route path="/home" element={<Home />} />
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/knowledge" element={<Knowledge />} />
+          <Route path="/conversations" element={<Conversations />} />
+          <Route path="/bots" element={<Bots />} />
+          <Route path="/servers" element={<Servers />} />
+          <Route path="/automations" element={<Automations />} />
+          <Route path="/insights" element={<Insights />} />
+          <Route path="/memory" element={<Memory />} />
+          <Route path="/posts" element={<Posts />} />
+          <Route path="/campaigns" element={<Campaigns />} />
+        </Route>
 
-      {/* Fallback */}
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+        {/* Fallback */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+      <Toaster position="bottom-right" toastOptions={{ style: { background: '#08080c', color: '#fff', border: '1px solid rgba(255,255,255,0.1)', fontSize: '10px', borderRadius: '2px', fontWeight: 'bold' } }} />
+    </>
   );
 }
 

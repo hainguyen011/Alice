@@ -1,9 +1,11 @@
 import 'dotenv/config'
 import express from 'express'
 import cors from 'cors'
+import fs from 'fs'
 import { v4 as uuidv4 } from 'uuid'
 import connectDB from './services/database.js'
-import { Bot, Conversation, Knowledge, Channel, Guild, Post, Schedule, Script } from './services/models.js'
+import { Bot, Conversation, Knowledge, Channel, Guild, Post, Schedule, Script, Campaign, Chapter } from './services/models.js'
+import { comicService } from './services/comicService.js'
 import { getEmbedding, getAIResponse, listModels } from './services/aiService.js'
 import { schedulerService } from './services/schedulerService.js'
 import {
@@ -20,6 +22,7 @@ import { fileURLToPath } from 'url'
 import cookieParser from 'cookie-parser'
 import * as authController from './controllers/authController.js'
 import { authMiddleware } from './middleware/authMiddleware.js'
+import { logger } from './services/loggerService.js'
 
 
 const __filename = fileURLToPath(import.meta.url)
@@ -54,12 +57,26 @@ app.use((req, res, next) => {
 app.use(express.json())
 app.use(cookieParser())
 
+// Serve static files from uploads folder
+const uploadDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
+}
+app.use('/uploads', express.static(uploadDir));
+
 
 // Middleware log yêu cầu
 app.use((req, res, next) => {
-    console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+    let logUrl = req.url;
+    if (logUrl.includes('token=')) {
+        logUrl = logUrl.replace(/token=[^&]+/, 'token=***');
+    }
+    logger.info(`${req.method} ${logUrl}`);
     next();
 });
+
+// Endpoint streaming log cho Terminal
+app.get('/api/logs/stream', (req, res) => logger.handleSSE(req, res));
 
 // --- API Routes (PHẢI TRƯỚC STATIC ĐỂ TRÁNH CONFLICT) ---
 
@@ -90,7 +107,7 @@ app.get('/api/ai/models', async (req, res) => {
         const models = await listModels(apiKey);
         res.json(models);
     } catch (error) {
-        console.error('Error in GET /api/ai/models:', error);
+        logger.error(`Error in GET /api/ai/models: ${error.message}`);
         res.status(500).json({ error: error.message });
     }
 });
@@ -104,21 +121,21 @@ app.get('/api/bots', async (req, res) => {
         const bots = await Bot.find();
         res.json(bots);
     } catch (error) {
-        console.error('Error in GET /api/bots:', error);
+        logger.error(`Error in GET /api/bots: ${error.message}`);
         res.status(500).json({ error: error.message });
     }
 });
 
 app.post('/api/bots', async (req, res) => {
     try {
-        console.log('Creating new bot:', req.body.name, 'with data:', req.body);
+        logger.info(`Creating new bot: ${req.body.name}`);
         const bot = await Bot.create(req.body);
         if (bot.isActive) {
             await botManager.startBot(bot);
         }
         res.json(bot);
     } catch (error) {
-        console.error('Error in POST /api/bots:', error);
+        logger.error(`Error in POST /api/bots: ${error.message}`);
         res.status(500).json({ error: error.message });
     }
 });
@@ -545,6 +562,105 @@ app.post('/api/scripts/:id/run', async (req, res) => {
 });
 
 /**
+ * Quản lý Chiến dịch (Campaigns)
+ */
+app.get('/api/campaigns', async (req, res) => {
+    try {
+        const campaigns = await Campaign.find().populate('botId', 'name');
+        res.json(campaigns);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.post('/api/campaigns', async (req, res) => {
+    try {
+        const campaign = await Campaign.create(req.body);
+        res.json(campaign);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.patch('/api/campaigns/:id', async (req, res) => {
+    try {
+        const campaign = await Campaign.findByIdAndUpdate(req.params.id, req.body, { new: true });
+        res.json(campaign);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.delete('/api/campaigns/:id', async (req, res) => {
+    try {
+        await Campaign.findByIdAndDelete(req.params.id);
+        await Chapter.deleteMany({ campaignId: req.params.id });
+        res.json({ success: true });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+/**
+ * Quản lý Chương (Chapters)
+ */
+app.get('/api/campaigns/:id/chapters', async (req, res) => {
+    try {
+        const chapters = await Chapter.find({ campaignId: req.params.id }).sort({ chapterNumber: -1 });
+        res.json(chapters);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.post('/api/campaigns/:id/generate', async (req, res) => {
+    try {
+        const { userInstruction } = req.body;
+        const chapter = await comicService.generateNextChapter(req.params.id, userInstruction);
+        res.json(chapter);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.post('/api/chapters/:id/regenerate-content', async (req, res) => {
+    try {
+        const chapter = await comicService.regenerateContent(req.params.id);
+        res.json(chapter);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.post('/api/chapters/:id/regenerate-image', async (req, res) => {
+    try {
+        const { customPrompt } = req.body;
+        const chapter = await comicService.regenerateImage(req.params.id, customPrompt);
+        res.json(chapter);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.post('/api/chapters/:id/publish', async (req, res) => {
+    try {
+        await comicService.publishChapter(req.params.id);
+        res.json({ success: true });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.patch('/api/chapters/:id', async (req, res) => {
+    try {
+        const chapter = await Chapter.findByIdAndUpdate(req.params.id, req.body, { new: true });
+        res.json(chapter);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+/**
  * Thống kê kiến thức
  */
 app.get('/api/knowledge', async (req, res) => {
@@ -741,7 +857,7 @@ const startServer = async () => {
     schedulerService.start();
 
     app.listen(PORT, () => {
-        console.log(`🚀 Alice Dashboard API running at http://localhost:${PORT}`)
+        logger.system(`🚀 Alice Dashboard API running at http://localhost:${PORT}`);
     })
 }
 

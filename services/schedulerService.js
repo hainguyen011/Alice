@@ -1,7 +1,9 @@
 import cron from 'node-cron';
 import { botManager } from './botService.js';
-import { Post, Schedule } from './models.js';
+import { Post, Schedule, Campaign, Chapter } from './models.js';
 import { createSuccessEmbed } from '../utils/embedHelper.js';
+import { comicService } from './comicService.js';
+import parser from 'cron-parser';
 
 class SchedulerService {
     constructor() {
@@ -23,6 +25,7 @@ class SchedulerService {
         this.job = cron.schedule('* * * * *', async () => {
             try {
                 await this.processSchedules();
+                await this.processCampaigns();
             } catch (error) {
                 console.error('❌ Error in scheduler job:', error);
             }
@@ -173,8 +176,40 @@ class SchedulerService {
             schedule.lastRun = new Date();
             // Nếu có cron, ta sẽ tính toán scheduledAt tiếp theo ở đây
         }
-
         await schedule.save();
+    }
+
+    /**
+     * Xử lý các chiến dịch truyện tranh tự động
+     */
+    async processCampaigns() {
+        const now = new Date();
+        const activeCampaigns = await Campaign.find({ isActive: true });
+
+        for (const campaign of activeCampaigns) {
+            try {
+                // Kiểm tra xem đã đến lúc tạo chương mới chưa (dựa trên cron)
+                const interval = parser.parseExpression(campaign.cron);
+                const prevRun = interval.prev().toDate();
+
+                // Tránh tạo lặp lại: Kiểm tra xem có Chapter nào cho Campaign này vừa được tạo gần đây không
+                const lastChapter = await Chapter.findOne({ campaignId: campaign._id })
+                    .sort({ chapterNumber: -1 });
+
+                const shouldGenerate = !lastChapter || lastChapter.createdAt < prevRun || (lastChapter.status === 'failed' && campaign.config.autoRegenerateOnFail);
+
+                if (shouldGenerate) {
+                    console.log(`⏰ Time to generate next chapter for Campaign: ${campaign.name}`);
+                    const chapter = await comicService.generateNextChapter(campaign._id);
+
+                    if (!campaign.config.reviewRequired) {
+                        await comicService.publishChapter(chapter._id);
+                    }
+                }
+            } catch (error) {
+                console.error(`❌ Error processing campaign ${campaign.name}:`, error);
+            }
+        }
     }
 }
 

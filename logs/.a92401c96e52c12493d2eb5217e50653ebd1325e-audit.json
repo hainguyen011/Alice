@@ -1,0 +1,15 @@
+{
+    "keep": {
+        "days": true,
+        "amount": 14
+    },
+    "auditLog": "D:\\AI Agent Project\\some-bots\\alice\\logs\\.a92401c96e52c12493d2eb5217e50653ebd1325e-audit.json",
+    "files": [
+        {
+            "date": 1771143293285,
+            "name": "D:\\AI Agent Project\\some-bots\\alice\\logs\\system-2026-02-15.log",
+            "hash": "639e2dc1f375fa890533a9e97583ca3dabc5d37808bce6856393969863d6ad58"
+        }
+    ],
+    "hashType": "sha256"
+}

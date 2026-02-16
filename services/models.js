@@ -118,6 +118,40 @@ const scriptSchema = new mongoose.Schema({
     botId: { type: mongoose.Schema.Types.ObjectId, ref: 'Bot' }
 }, { timestamps: true });
 
+const campaignSchema = new mongoose.Schema({
+    name: { type: String, required: true },
+    description: String,
+    theme: { type: String, required: true }, // e.g., "GTAV City Stories"
+    style: { type: String, default: 'Comics' }, // Comics, GTA Style, Anime...
+    botId: { type: mongoose.Schema.Types.ObjectId, ref: 'Bot', required: true },
+    channelId: { type: String, required: true },
+    cron: { type: String, default: '0 9 * * 1' }, // Default: 9 AM every Monday
+    currentChapter: { type: Number, default: 0 },
+    storyContext: String, // Tổng quan cốt truyện hoặc hướng dẫn chung
+    nextChapterPrompt: String, // Gợi ý cho chương tiếp theo (dùng 1 lần)
+    apiKey: String, // Custom Gemini API key for this campaign (optional, overrides bot's key)
+    isActive: { type: Boolean, default: true },
+    config: {
+        reviewRequired: { type: Boolean, default: true },
+        autoRegenerateOnFail: { type: Boolean, default: true },
+        discordStructure: { type: String, default: 'Standard Embed' }
+    }
+}, { timestamps: true });
+
+const chapterSchema = new mongoose.Schema({
+    campaignId: { type: mongoose.Schema.Types.ObjectId, ref: 'Campaign', required: true },
+    chapterNumber: { type: Number, required: true },
+    title: { type: String, required: true },
+    content: { type: String, required: true },
+    userPrompt: String, // Gợi ý cụ thể của người dùng cho chương này
+    imageUrl: String,
+    imagePrompt: String,
+    status: { type: String, enum: ['draft', 'approved', 'sent', 'failed'], default: 'draft' },
+    scheduledAt: Date,
+    sentAt: Date,
+    error: String
+}, { timestamps: true });
+
 export const Bot = mongoose.model('Bot', botSchema);
 export const Conversation = mongoose.model('Conversation', conversationSchema);
 export const Knowledge = mongoose.model('Knowledge', knowledgeSchema);
@@ -127,4 +161,6 @@ export const User = mongoose.model('User', userSchema);
 export const Post = mongoose.model('Post', postSchema);
 export const Schedule = mongoose.model('Schedule', scheduleSchema);
 export const Script = mongoose.model('Script', scriptSchema);
+export const Campaign = mongoose.model('Campaign', campaignSchema);
+export const Chapter = mongoose.model('Chapter', chapterSchema);
 

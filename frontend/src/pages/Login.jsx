@@ -96,8 +96,8 @@ const Login = () => {
                                     <span className="block text-white glow-text">ALICE</span>
                                     <span className="block text-transparent stroke-text">ADMIN</span>
                                 </h1>
-                                <p className="text-gray-400 text-xs font-bold uppercase tracking-[0.2em] leading-relaxed max-w-[280px] opacity-70 border-l-2 border-red-600 pl-4 py-1">
-                                    Hệ thống điều khiển hành vi & trí tuệ nhân tạo cao cấp cho thế giới ngầm
+                                <p className="text-gray-400 text-xs font-bold uppercase tracking-[0.2em] leading-relaxed max-w-[480px] opacity-70 border-l-2 border-red-600 pl-4 py-1">
+                                    Hệ thống điều khiển hành vi & trí tuệ nhân tạo và Agentic cao cấp cho Discord
                                 </p>
                             </div>
 

@@ -19,6 +19,7 @@ const navItems = [
     { path: '/automations', icon: Workflow, label: 'PROTOCOLS' },
     { path: '/insights', icon: ChartBar, label: 'ANALYSIS' },
     { path: '/memory', icon: HardDrive, label: 'STORAGE' },
+    { path: '/campaigns', icon: Terminal, label: 'CAMPAIGNS' },
 ];
 
 export default function Sidebar() {
