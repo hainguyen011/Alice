@@ -6,7 +6,7 @@ const defaultGenAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
 /**
  * Lấy instance GoogleGenerativeAI dựa trên key (mặc định hoặc cụ thể của bot)
  */
-const getGenAI = (apiKey) => {
+export const getGenAI = (apiKey) => {
     if (!apiKey) return defaultGenAI;
     return new GoogleGenerativeAI(apiKey);
 }
@@ -22,7 +22,7 @@ export const getAIResponse = async (prompt, botConfig, chatContext = '', availab
         const genAIInstance = getGenAI(botConfig.api_key);
 
         const model = genAIInstance.getGenerativeModel({
-            model: botConfig.modelName || 'gemini-2.5-flash',
+            model: botConfig.modelName || 'gemini-2.0-flash',
             systemInstruction: botConfig.systemInstruction
         })
 

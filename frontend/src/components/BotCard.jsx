@@ -252,8 +252,8 @@ const BotCard = ({ bot, onEdit, onToggle, onSync }) => {
                             className={clsx(
                                 "w-14 h-11 rounded-xl flex items-center justify-center transition-all duration-300 active:scale-95 border",
                                 bot.isActive
-                                    ? "bg-red-500/10 border-red-500/20 text-red-500 hover:bg-red-500/20 shadow-[0_0_15px_rgba(239,68,68,0.1)]"
-                                    : "bg-success/10 border-success/20 text-success hover:bg-success/20 shadow-[0_0_15px_rgba(0,255,209,0.1)]"
+                                    ? "bg-success/10 border-success/20 text-success hover:bg-success/20 shadow-[0_0_15px_rgba(0,255,209,0.1)]"
+                                    : "bg-red-500/10 border-red-500/20 text-red-500 hover:bg-red-500/20 shadow-[0_0_15px_rgba(239,68,68,0.1)]"
                             )}
                         >
                             <Power size={18} className={clsx(bot.isActive ? "animate-pulse" : "")} />

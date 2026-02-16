@@ -19,6 +19,7 @@ import {
     MoreVertical
 } from 'lucide-react';
 import { clsx } from 'clsx';
+import CustomSelect from '../components/CustomSelect';
 
 const containerVariants = {
     hidden: { opacity: 0 },
@@ -344,22 +345,23 @@ const Servers = () => {
 
                                                 <div className="px-5 pb-5 space-y-5">
                                                     <div className="space-y-2">
-                                                        <label className="text-[9px] font-black uppercase tracking-[0.1em] text-muted/60 flex items-center gap-2">
-                                                            <BotIcon size={12} /> Chỉ Định Bot (Persona)
-                                                        </label>
-                                                        <select
-                                                            className="w-full bg-background/60 border border-white/10 rounded-xl px-4 py-3 text-[11px] font-bold outline-none focus:border-primary/50 transition-all appearance-none cursor-pointer hover:bg-background/80"
+                                                        <CustomSelect
+                                                            label="Chỉ Định Bot (Persona)"
+                                                            placeholder="Không gán Bot"
                                                             value={ch.botId}
-                                                            onChange={(e) => {
+                                                            onChange={(val) => {
                                                                 const newChannels = discordChannels.map(d =>
-                                                                    d.channelId === ch.channelId ? { ...d, botId: e.target.value } : d
+                                                                    d.channelId === ch.channelId ? { ...d, botId: val } : d
                                                                 );
                                                                 setDiscordChannels(newChannels);
                                                             }}
-                                                        >
-                                                            <option value="">Không gán Bot</option>
-                                                            {bots.map(b => <option key={b._id} value={b._id}>{b.name}</option>)}
-                                                        </select>
+                                                            options={bots.map(b => ({
+                                                                id: b._id,
+                                                                name: b.name,
+                                                                subtext: b.username
+                                                            }))}
+                                                            icon={BotIcon}
+                                                        />
                                                     </div>
 
                                                     <button

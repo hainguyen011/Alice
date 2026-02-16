@@ -14,6 +14,7 @@ const navItems = [
     { path: '/knowledge', icon: Brain, label: 'NEURAL DATA' },
     { path: '/conversations', icon: MessageSquare, label: 'COMMS' },
     { path: '/bots', icon: Bot, label: 'AGENTS' },
+    { path: '/posts', icon: BookOpenText, label: 'CONTENT' },
     { path: '/servers', icon: Server, label: 'GRIDS' },
     { path: '/automations', icon: Workflow, label: 'PROTOCOLS' },
     { path: '/insights', icon: ChartBar, label: 'ANALYSIS' },

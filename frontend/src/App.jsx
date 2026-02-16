@@ -6,6 +6,7 @@ import Knowledge from './pages/Knowledge.jsx';
 import Conversations from './pages/Conversations.jsx';
 import Bots from './pages/Bots.jsx';
 import Servers from './pages/Servers.jsx';
+import Posts from './pages/Posts.jsx';
 import Automations from './pages/Automations.jsx';
 import Insights from './pages/Insights.jsx';
 import Memory from './pages/Memory.jsx';
@@ -41,6 +42,7 @@ export default function App() {
         <Route path="/automations" element={<Automations />} />
         <Route path="/insights" element={<Insights />} />
         <Route path="/memory" element={<Memory />} />
+        <Route path="/posts" element={<Posts />} />
       </Route>
 
       {/* Fallback */}

@@ -22,6 +22,8 @@ import {
     ExternalLink
 } from 'lucide-react';
 import { clsx } from 'clsx';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 const Conversations = () => {
     const [conversations, setConversations] = useState([]);
@@ -265,24 +267,34 @@ const Conversations = () => {
                                     {selectedSession.messages.map((msg, i) => (
                                         <div key={i} className="flex flex-col gap-6 group animate-in fade-in slide-in-from-bottom-2 duration-500">
                                             {/* User Message (Right) */}
-                                            <div className="flex flex-col items-end max-w-[70%] self-end">
-                                                <div className="bg-primary/20 text-white p-4 rounded-2xl rounded-tr-sm text-sm shadow-md border border-primary/10 backdrop-blur-sm relative group/msg">
-                                                    {msg.message || msg.content}
+                                            <div className="flex flex-col items-end max-w-[75%] self-end">
+                                                <div className="bg-primary/20 text-white p-3 px-4 rounded-2xl rounded-tr-sm text-[12px] shadow-md border border-primary/10 backdrop-blur-sm relative group/msg ml-auto">
+                                                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.message || msg.content}</ReactMarkdown>
                                                 </div>
-                                                <div className="text-[10px] text-muted mt-1.5 font-mono opacity-40 font-medium">
+                                                <div className="text-[9px] text-muted mt-1 font-mono opacity-40 font-medium">
                                                     {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                                 </div>
                                             </div>
 
                                             {/* AI Response (Left) */}
                                             {(msg.response || msg.role === 'ai') && (
-                                                <div className="flex flex-row items-start max-w-[75%] self-start gap-4">
-                                                    <div className="w-8 h-8 rounded-xl bg-white/5 flex items-center justify-center shrink-0 border border-white/10 mt-1 shadow-sm">
-                                                        <BotIcon size={16} className="text-primary" />
+                                                <div className="flex flex-row items-start max-w-[80%] self-start gap-3">
+                                                    <div className="w-7 h-7 rounded-lg bg-white/5 flex items-center justify-center shrink-0 border border-white/10 mt-1 shadow-sm">
+                                                        <BotIcon size={14} className="text-primary" />
                                                     </div>
-                                                    <div className="flex flex-col gap-1.5">
-                                                        <div className="bg-surface/90 text-white/90 p-5 rounded-2xl rounded-tl-sm text-sm shadow-lg border border-white/5 leading-relaxed">
-                                                            {msg.response || msg.content}
+                                                    <div className="flex flex-col gap-1">
+                                                        <div className="bg-surface/90 text-white/90 p-3 px-4 rounded-2xl rounded-tl-sm text-[12px] shadow-lg border border-white/5 leading-relaxed mr-auto">
+                                                            <ReactMarkdown
+                                                                remarkPlugins={[remarkGfm]}
+                                                                components={{
+                                                                    p: ({ node, ...props }) => <p className="mb-0" {...props} />,
+                                                                    ul: ({ node, ...props }) => <ul className="list-disc ml-4 mt-1" {...props} />,
+                                                                    ol: ({ node, ...props }) => <ol className="list-decimal ml-4 mt-1" {...props} />,
+                                                                    code: ({ node, inline, ...props }) => inline ? <code className="bg-black/30 px-1 rounded text-primary" {...props} /> : <code className="block bg-black/30 p-2 rounded my-1 overflow-x-auto text-[10px]" {...props} />
+                                                                }}
+                                                            >
+                                                                {msg.response || msg.content}
+                                                            </ReactMarkdown>
                                                         </div>
                                                         <div className="flex gap-3 px-1">
                                                             <span className="text-[10px] text-muted font-mono opacity-40 font-medium">
@@ -338,7 +350,7 @@ const Conversations = () => {
                         </div>
 
                         {/* Live Messages Area - Threaded Compact Style */}
-                        <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-4 scrollbar-thin">
+                        <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-4 scrollbar-thin flex flex-col">
                             {playgroundMessages.length === 0 ? (
                                 <div className="h-full flex flex-col items-center justify-center text-center opacity-30">
                                     <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mb-6 border border-primary/5">
@@ -352,21 +364,34 @@ const Conversations = () => {
                             ) : (
                                 playgroundMessages.map((msg, i) => (
                                     <div key={i} className={clsx(
-                                        "flex flex-col gap-1.5 max-w-[85%] animate-in fade-in slide-in-from-bottom-1 duration-400",
+                                        "flex flex-col gap-1 max-w-[70%] animate-in fade-in slide-in-from-bottom-1 duration-400",
                                         msg.role === 'user' ? "self-end items-end" : "self-start items-start"
                                     )}>
                                         <div className={clsx(
-                                            "p-3.5 px-5 rounded-2xl text-[13px] font-medium leading-[1.6] shadow-xl border backdrop-blur-[2px]",
+                                            "p-2.5 px-4 rounded-2xl text-[12px] font-medium leading-[1.5] shadow-xl border backdrop-blur-[4px] w-fit",
                                             msg.role === 'user'
-                                                ? "bg-primary text-white rounded-tr-none border-primary/20 shadow-primary/10"
+                                                ? "bg-primary text-white rounded-tr-none border-primary/20 shadow-primary/10 ml-auto"
                                                 : msg.role === 'system'
-                                                    ? "bg-red-500/10 text-red-500 border-red-500/10 italic text-[11px] py-2"
-                                                    : "bg-surface-glass text-white/90 rounded-tl-none border-white/10 border-l-2 border-l-primary/60"
+                                                    ? "bg-red-500/10 text-red-500 border-red-500/10 italic text-[11px] py-2 mr-auto"
+                                                    : "bg-surface-glass text-white/90 rounded-tl-none border-white/10 border-l-2 border-l-primary/60 shadow-black/20 mr-auto"
                                         )}>
                                             {msg.role === 'system' && <AlertCircle size={12} className="inline mr-2" />}
-                                            {msg.content}
+                                            <ReactMarkdown
+                                                remarkPlugins={[remarkGfm]}
+                                                components={{
+                                                    p: ({ node, ...props }) => <p className="mb-0" {...props} />,
+                                                    ul: ({ node, ...props }) => <ul className="list-disc ml-4 mt-2" {...props} />,
+                                                    ol: ({ node, ...props }) => <ol className="list-decimal ml-4 mt-2" {...props} />,
+                                                    code: ({ node, inline, ...props }) =>
+                                                        inline
+                                                            ? <code className="bg-black/30 px-1 rounded text-primary" {...props} />
+                                                            : <code className="block bg-black/30 p-2 rounded my-2 overflow-x-auto" {...props} />
+                                                }}
+                                            >
+                                                {msg.content}
+                                            </ReactMarkdown>
                                         </div>
-                                        <div className="flex items-center gap-2 px-1">
+                                        <div className={clsx("flex items-center gap-2", msg.role === 'user' ? "flex-row-reverse" : "flex-row")}>
                                             <span className="text-[8px] text-muted font-bold opacity-30 font-mono">
                                                 {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                             </span>
@@ -375,7 +400,7 @@ const Conversations = () => {
                                                     onClick={() => setActiveRagContext(msg.context)}
                                                     className="flex items-center gap-1 text-[8px] font-black text-success/60 uppercase hover:text-success hover:underline transition-colors"
                                                 >
-                                                    <Database size={8} /> Inspect
+                                                    <Database size={8} /> INSPECT
                                                 </button>
                                             )}
                                         </div>
@@ -392,11 +417,12 @@ const Conversations = () => {
                         <div className="p-5 border-t border-white/5 bg-black/20 backdrop-blur-md">
                             <form onSubmit={handleSendMessage} className="flex gap-3 max-w-4xl mx-auto w-full">
                                 <div className="relative flex-1 group">
-                                    <div className="absolute inset-0 bg-primary/5 rounded-xl blur-lg opacity-0 group-focus-within:opacity-100 transition-opacity" />
+                                    <div className="absolute inset-0 bg-primary/5 rounded-xl blur-lg opacity-0 group-focus-within:opacity-100 transition-opacity pointer-events-none" />
                                     <input
                                         type="text"
+                                        autoFocus
                                         placeholder="Message Alice..."
-                                        className="w-full bg-background border border-white/10 rounded-xl px-5 py-3 text-xs outline-none focus:border-primary/50 transition-all shadow-lg placeholder:text-muted/40"
+                                        className="w-full bg-background border border-white/10 rounded-xl px-5 py-3 text-xs outline-none focus:border-primary/50 transition-all shadow-lg placeholder:text-muted/40 relative z-10"
                                         value={playgroundInput}
                                         onChange={e => setPlaygroundInput(e.target.value)}
                                         disabled={isSending}
@@ -434,7 +460,7 @@ const Conversations = () => {
                                             <span>Lat:</span> <span className="text-white/60">1.2s</span>
                                         </div>
                                         <div className="flex justify-between items-center text-[9px] font-mono text-white/40 italic">
-                                            <span>V:</span> <span className="text-white/60">Gemini 2.5</span>
+                                            <span>V:</span> <span className="text-white/60">Gemini 2.0</span>
                                         </div>
                                     </div>
                                 </div>
@@ -469,7 +495,8 @@ const Conversations = () => {
                         </div>
                     </div>
                 </div>
-            )}
+            )
+            }
 
             {/* Full Chat Modal */}
             <AnimatePresence>
@@ -513,9 +540,9 @@ const Conversations = () => {
                                 {selectedSession.messages.map((msg, i) => (
                                     <div key={i} className="flex flex-col gap-6 group animate-in fade-in slide-in-from-bottom-2 duration-500">
                                         {/* User Message (Right) */}
-                                        <div className="flex flex-col items-end max-w-[70%] self-end">
-                                            <div className="bg-primary/20 text-white p-4 rounded-2xl rounded-tr-sm text-sm shadow-md border border-primary/10 backdrop-blur-sm">
-                                                {msg.message || msg.content}
+                                        <div className="flex flex-col items-end max-w-[80%] self-end">
+                                            <div className="bg-primary/20 text-white p-4 rounded-2xl rounded-tr-sm text-sm shadow-md border border-primary/10 backdrop-blur-sm ml-auto">
+                                                <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.message || msg.content}</ReactMarkdown>
                                             </div>
                                             <div className="text-[10px] text-muted mt-1.5 font-mono opacity-40 font-medium">
                                                 {new Date(msg.timestamp).toLocaleString()}
@@ -524,13 +551,13 @@ const Conversations = () => {
 
                                         {/* AI Response (Left) */}
                                         {(msg.response || msg.role === 'ai') && (
-                                            <div className="flex flex-row items-start max-w-[75%] self-start gap-4">
+                                            <div className="flex flex-row items-start max-w-[80%] self-start gap-4">
                                                 <div className="w-8 h-8 rounded-xl bg-white/5 flex items-center justify-center shrink-0 border border-white/10 mt-1 shadow-sm">
                                                     <BotIcon size={16} className="text-primary" />
                                                 </div>
                                                 <div className="flex flex-col gap-1.5">
-                                                    <div className="bg-surface/90 text-white/90 p-5 rounded-2xl rounded-tl-sm text-sm shadow-lg border border-white/5 leading-relaxed">
-                                                        {msg.response || msg.content}
+                                                    <div className="bg-surface/90 text-white/90 p-5 rounded-2xl rounded-tl-sm text-sm shadow-lg border border-white/5 leading-relaxed mr-auto">
+                                                        <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.response || msg.content}</ReactMarkdown>
                                                     </div>
                                                     <div className="flex gap-3 px-1">
                                                         <span className="text-[10px] text-muted font-mono opacity-40 font-medium">
@@ -547,7 +574,7 @@ const Conversations = () => {
                     </motion.div>
                 )}
             </AnimatePresence>
-        </div>
+        </div >
     );
 };
 

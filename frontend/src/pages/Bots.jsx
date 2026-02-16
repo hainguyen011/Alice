@@ -17,7 +17,7 @@ const Bots = () => {
     const [isFetchingModels, setIsFetchingModels] = useState(false);
     const [formData, setFormData] = useState({
         name: '',
-        modelName: 'gemini-2.5-flash',
+        modelName: 'gemini-2.0-flash',
         bot_token: '',
         api_key: '',
         systemInstruction: '',
@@ -47,9 +47,9 @@ const Bots = () => {
         }
     };
 
-    const fetchBots = async () => {
+    const fetchBots = async (showLoading = true) => {
         try {
-            setLoading(true);
+            if (showLoading) setLoading(true);
             const [{ data: botsData }, { data: channelsData }] = await Promise.all([
                 botsApi.getAll(),
                 channelsApi.getAll()
@@ -65,14 +65,14 @@ const Bots = () => {
         } catch (err) {
             console.error('Error fetching bots and channels:', err);
         } finally {
-            setLoading(false);
+            if (showLoading) setLoading(false);
         }
     };
 
     const handleSyncMetadata = async (bot) => {
         try {
             await botsApi.syncMetadata(bot._id);
-            fetchBots(); // Refresh list to see new metadata
+            fetchBots(false); // Silent refresh
         } catch (err) {
             alert(`Sync failed: ${err.response?.data?.error || err.message}`);
         }
@@ -84,7 +84,7 @@ const Bots = () => {
             setEditingBot(bot);
             setFormData({
                 name: bot.name,
-                modelName: bot.modelName || 'gemini-2.5-flash',
+                modelName: bot.modelName || 'gemini-2.0-flash',
                 bot_token: '',
                 api_key: bot.api_key || '',
                 systemInstruction: bot.systemInstruction || '',
@@ -100,7 +100,7 @@ const Bots = () => {
             setEditingBot(null);
             setFormData({
                 name: '',
-                modelName: 'gemini-2.5-flash',
+                modelName: 'gemini-2.0-flash',
                 bot_token: '',
                 api_key: '',
                 systemInstruction: '',
@@ -154,10 +154,18 @@ const Bots = () => {
     };
 
     const toggleStatus = async (bot) => {
+        // Optimistic Update
+        const updatedBots = bots.map(b =>
+            b._id === bot._id ? { ...b, isActive: !b.isActive } : b
+        );
+        setBots(updatedBots);
+
         try {
             await botsApi.update(bot._id, { isActive: !bot.isActive });
-            fetchBots();
+            fetchBots(false); // Silent sync with server
         } catch (err) {
+            // Revert on error
+            setBots(bots);
             alert(`Error toggling status: ${err.message}`);
         }
     };

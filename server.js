@@ -3,8 +3,9 @@ import express from 'express'
 import cors from 'cors'
 import { v4 as uuidv4 } from 'uuid'
 import connectDB from './services/database.js'
-import { Bot, Conversation, Knowledge, Channel, Guild } from './services/models.js'
+import { Bot, Conversation, Knowledge, Channel, Guild, Post, Schedule, Script } from './services/models.js'
 import { getEmbedding, getAIResponse, listModels } from './services/aiService.js'
+import { schedulerService } from './services/schedulerService.js'
 import {
     initCollection,
     upsertKnowledge,
@@ -327,6 +328,223 @@ app.delete('/api/guilds/:id', async (req, res) => {
 // app.use(express.static('dashboard'))
 
 /**
+ * Quản lý Bài viết (Posts)
+ */
+app.get('/api/posts', async (req, res) => {
+    try {
+        console.log('GET /api/posts - Fetching all posts');
+        const posts = await Post.find().sort({ createdAt: -1 });
+        res.json(posts);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.post('/api/posts', async (req, res) => {
+    try {
+        console.log('--- POST /api/posts ---');
+        console.log('Body:', JSON.stringify(req.body, null, 2));
+        const post = await Post.create(req.body);
+        console.log('Post created successfully:', post._id);
+        res.json(post);
+    } catch (error) {
+        console.error('Error in POST /api/posts:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.patch('/api/posts/:id', async (req, res) => {
+    try {
+        console.log(`--- PATCH /api/posts/${req.params.id} (Improved) ---`);
+        console.log('Update Body:', JSON.stringify(req.body, null, 2));
+
+        const post = await Post.findById(req.params.id);
+        if (!post) {
+            console.warn('Post not found for update:', req.params.id);
+            return res.status(404).json({ error: 'Bài viết không tồn tại!' });
+        }
+
+        // Explicitly map fields to ensure subdocument replacement
+        post.title = req.body.title;
+        post.content = req.body.content;
+        post.type = req.body.type;
+
+        // Deep replace the config object
+        if (req.body.config) {
+            post.config = req.body.config;
+            post.markModified('config');
+        }
+
+        await post.save();
+
+        console.log('Post updated successfully via .save()');
+        res.json(post);
+    } catch (error) {
+        console.error('Error in PATCH /api/posts:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.delete('/api/posts/:id', async (req, res) => {
+    try {
+        console.log('DELETE /api/posts - Removing post:', req.params.id);
+        await Post.findByIdAndDelete(req.params.id);
+        res.json({ success: true });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.post('/api/posts/generate', async (req, res) => {
+    try {
+        const { prompt, botId } = req.body;
+        if (!prompt) return res.status(400).json({ error: 'Prompt is required' });
+
+        let bot = null;
+        if (botId) bot = await Bot.findById(botId);
+
+        const systemInstruction = `
+            Bạn là một chuyên gia Content Creator cho Discord. 
+            Nhiệm vụ: Dựa vào yêu cầu của người dùng, hãy viết một tiêu đề và nội dung bài đăng chuyên nghiệp, hấp dẫn.
+            Yêu cầu:
+            1. Trình bày nội dung sạch sẽ, sử dụng Markdown Discord phù hợp.
+            2. Trả về kết quả DUY NHẤT dưới dạng JSON: { "title": "Tiêu đề", "content": "Nội dung", "suggestedColor": "#màu_hex" }
+            3. Màu sắc gợi ý nên phù hợp với tâm trạng hoặc chủ đề của bài viết.
+        `.trim();
+
+        const genAIInstance = getGenAI(bot?.api_key);
+        const model = genAIInstance.getGenerativeModel({
+            model: bot?.modelName || 'gemini-2.0-flash',
+            systemInstruction
+        });
+
+        const result = await model.generateContent(prompt);
+        const response = await result.response;
+        const text = response.text();
+
+        const jsonMatch = text.match(/\{.*\}/s);
+        if (jsonMatch) {
+            res.json(JSON.parse(jsonMatch[0]));
+        } else {
+            console.error('AI Generation Error - No JSON found:', text);
+            res.status(500).json({ error: 'AI không trả về đúng định dạng JSON. Hãy thử lại.' });
+        }
+    } catch (error) {
+        console.error('AI Post Generation Error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.post('/api/posts/publish', async (req, res) => {
+    try {
+        console.log('POST /api/posts/publish - Immediate dispatch request');
+        const { postId, botId, channelId } = req.body;
+
+        const post = await Post.findById(postId);
+        const botData = await Bot.findById(botId);
+
+        if (!post || !botData) {
+            return res.status(404).json({ error: 'Post or Bot not found' });
+        }
+
+        const tempSchedule = { postId: post, botId: botData, channelId, type: 'once' };
+        await schedulerService.publishPost(tempSchedule);
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Publish now error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+/**
+ * Quản lý Lịch đăng (Schedules)
+ */
+app.get('/api/schedules', async (req, res) => {
+    try {
+        console.log('GET /api/schedules - Listing schedules');
+        const schedules = await Schedule.find()
+            .populate('postId')
+            .populate('botId', 'name')
+            .sort({ scheduledAt: 1 });
+        res.json(schedules);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.post('/api/schedules', async (req, res) => {
+    try {
+        console.log('POST /api/schedules - Creating new schedule');
+        const schedule = await Schedule.create(req.body);
+        res.json(schedule);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.delete('/api/schedules/:id', async (req, res) => {
+    try {
+        console.log('DELETE /api/schedules - Cancelling schedule:', req.params.id);
+        await Schedule.findByIdAndDelete(req.params.id);
+        res.json({ success: true });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+/**
+ * Quản lý Kịch bản (Scripts)
+ */
+app.get('/api/scripts', async (req, res) => {
+    try {
+        console.log('GET /api/scripts - Fetching all scripts');
+        const scripts = await Script.find().populate('steps.postId').populate('botId', 'name');
+        res.json(scripts);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.post('/api/scripts', async (req, res) => {
+    try {
+        console.log('POST /api/scripts - Creating new script chain');
+        const script = await Script.create(req.body);
+        res.json(script);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.post('/api/scripts/:id/run', async (req, res) => {
+    try {
+        console.log('POST /api/scripts/:id/run - Kicking off script sequence');
+        const script = await Script.findById(req.params.id);
+        if (!script) return res.status(404).json({ error: 'Script not found' });
+
+        const { botId, channelId } = req.body;
+        const targetBotId = botId || script.botId;
+
+        let currentTime = new Date();
+
+        for (const step of script.steps) {
+            currentTime = new Date(currentTime.getTime() + (step.delayMinutes || 0) * 60000);
+
+            await Schedule.create({
+                postId: step.postId,
+                botId: targetBotId,
+                channelId: step.channelId || channelId,
+                scheduledAt: new Date(currentTime),
+                type: 'once'
+            });
+        }
+
+        res.json({ success: true, message: `Scheduled ${script.steps.length} steps.` });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+/**
  * Thống kê kiến thức
  */
 app.get('/api/knowledge', async (req, res) => {
@@ -510,6 +728,7 @@ app.post('/api/chat', async (req, res) => {
     }
 });
 
+
 // Khởi tạo
 const startServer = async () => {
     await connectDB();
@@ -517,6 +736,9 @@ const startServer = async () => {
 
     // Khởi tạo bots trong process này để API có thể truy cập Discord client
     await botManager.initializeBots();
+
+    // Khởi động scheduler
+    schedulerService.start();
 
     app.listen(PORT, () => {
         console.log(`🚀 Alice Dashboard API running at http://localhost:${PORT}`)

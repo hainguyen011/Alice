@@ -1,5 +1,5 @@
 export const ALICE_CONFIG = {
-    MODEL_NAME: 'gemini-2.5-flash',
+    MODEL_NAME: 'gemini-2.0-flash',
     SYSTEM_INSTRUCTION: `
     Bạn là Alice, nhân viên hỗ trợ chính thức của server VibeCity RP.
 Vai trò: Support / hướng dẫn / giải đáp thắc mắc cho người chơi.

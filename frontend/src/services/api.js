@@ -95,5 +95,26 @@ export const guildsApi = {
     syncChannels: (guildId, channels) => api.post(`/guilds/${guildId}/sync-channels`, { channels })
 };
 
+export const postsApi = {
+    getAll: () => api.get('/posts'),
+    create: (data) => api.post('/posts', data),
+    update: (id, data) => api.patch(`/posts/${id}`, data),
+    delete: (id) => api.delete(`/posts/${id}`),
+    publishNow: (data) => api.post('/posts/publish', data),
+    generate: (data) => api.post('/posts/generate', data)
+};
+
+export const schedulesApi = {
+    getAll: () => api.get('/schedules'),
+    create: (data) => api.post('/schedules', data),
+    delete: (id) => api.delete(`/schedules/${id}`)
+};
+
+export const scriptsApi = {
+    getAll: () => api.get('/scripts'),
+    create: (data) => api.post('/scripts', data),
+    run: (id, data) => api.post(`/scripts/${id}/run`, data)
+};
+
 
 export default api;
