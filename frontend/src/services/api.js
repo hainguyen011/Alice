@@ -77,7 +77,7 @@ export const botsApi = {
 export const conversationsApi = {
     getAll: () => api.get('/conversations'),
     sync: (data) => api.post('/conversations/sync', data),
-    chat: (data) => api.post('/chat', data)
+    chat: (data) => api.post('/ai/chat', data)
 };
 
 export const channelsApi = {

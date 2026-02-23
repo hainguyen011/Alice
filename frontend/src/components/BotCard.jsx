@@ -14,7 +14,8 @@ import {
     MessageSquare,
     Clock,
     Layers,
-    ChevronDown
+    ChevronDown,
+    Facebook
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { clsx } from 'clsx';
@@ -80,29 +81,38 @@ const BotCard = ({ bot, onEdit, onToggle, onSync }) => {
                                     {bot.avatarUrl ? (
                                         <img src={bot.avatarUrl} alt={bot.name} className="w-full h-full object-cover" />
                                     ) : (
-                                        <Bot size={24} className={bot.isActive ? "text-success" : "text-muted"} />
+                                        bot.platform === 'facebook' ? <Facebook size={24} className={bot.isActive ? "text-info" : "text-muted"} /> : <Bot size={24} className={bot.isActive ? "text-success" : "text-muted"} />
                                     )}
                                 </div>
                                 {bot.isActive && (
                                     <div className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-background rounded-full flex items-center justify-center">
-                                        <div className="w-2.5 h-2.5 bg-success rounded-full animate-pulse shadow-[0_0_8px_rgba(0,255,209,0.6)]" />
+                                        <div className={clsx("w-2.5 h-2.5 rounded-full animate-pulse", bot.platform === 'facebook' ? "bg-info shadow-[0_0_8px_rgba(0,186,255,0.6)]" : "bg-success shadow-[0_0_8px_rgba(0,255,209,0.6)]")} />
                                     </div>
                                 )}
                             </div>
                             <div>
-                                <h3 className="font-black text-base tracking-tight leading-tight">{bot.name}</h3>
+                                <h3 className="font-black text-base tracking-tight leading-tight flex items-center gap-1.5">
+                                    {bot.name}
+                                    <span className={clsx("text-[8px] px-1.5 py-0.5 rounded uppercase", bot.platform === 'facebook' ? "bg-info/20 text-info" : "bg-primary/20 text-primary")}>
+                                        {bot.platform || 'discord'}
+                                    </span>
+                                </h3>
                                 <div className="flex items-center gap-2 mt-0.5">
-                                    <span className="text-[9px] text-muted font-black uppercase tracking-widest">{bot.discordName || "NOT_SYNCED"}</span>
-                                    <button
-                                        onClick={handleSync}
-                                        disabled={isSyncing}
-                                        className={clsx(
-                                            "text-muted hover:text-primary transition-all p-0.5",
-                                            isSyncing && "animate-spin text-primary"
-                                        )}
-                                    >
-                                        <RefreshCw size={8} />
-                                    </button>
+                                    <span className="text-[9px] text-muted font-black uppercase tracking-widest">
+                                        {bot.platform === 'facebook' ? (bot.platformConfig?.pageId || "NO_PAGE_ID") : (bot.discordName || "NOT_SYNCED")}
+                                    </span>
+                                    {bot.platform !== 'facebook' && (
+                                        <button
+                                            onClick={handleSync}
+                                            disabled={isSyncing}
+                                            className={clsx(
+                                                "text-muted hover:text-primary transition-all p-0.5",
+                                                isSyncing && "animate-spin text-primary"
+                                            )}
+                                        >
+                                            <RefreshCw size={8} />
+                                        </button>
+                                    )}
                                 </div>
                             </div>
                         </div>

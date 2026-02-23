@@ -4,8 +4,15 @@ const botSchema = new mongoose.Schema({
     name: { type: String, required: true },
     discordName: { type: String },
     avatarUrl: { type: String },
-    bot_token: { type: String, required: true },
+    bot_token: { type: String }, // Optional for non-discord platforms
     clientId: { type: String },
+    platform: { type: String, enum: ['discord', 'facebook', 'telegram'], default: 'discord' },
+    platformConfig: {
+        pageId: String,
+        accessToken: String,
+        verifyToken: String,
+        webhookUrl: String
+    },
     systemInstruction: { type: String },
     modelName: { type: String, default: 'gemini-2.0-flash' },
     api_key: { type: String },
@@ -24,11 +31,13 @@ const botSchema = new mongoose.Schema({
 
 const conversationSchema = new mongoose.Schema({
     botId: { type: mongoose.Schema.Types.ObjectId, ref: 'Bot' },
+    platform: { type: String, enum: ['discord', 'facebook', 'telegram'], default: 'discord' },
     username: String,
     userId: String,
     message: String,
     response: String,
     channelId: String,
+    channelType: { type: String, enum: ['dm', 'text', 'comment'], default: 'text' },
     timestamp: { type: Date, default: Date.now }
 }, { timestamps: true });
 

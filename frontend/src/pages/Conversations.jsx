@@ -19,7 +19,9 @@ import {
     Loader2,
     AlertCircle,
     Database,
-    ExternalLink
+    ExternalLink,
+    Facebook,
+    Globe
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import ReactMarkdown from 'react-markdown';
@@ -126,10 +128,12 @@ const Conversations = () => {
     };
 
     // Grouping logic for the sidebar
-    const sessions = Array.from(new Set(conversations.map(c => c.userId))).map(userId => {
-        const userMsgs = conversations.filter(c => c.userId === userId);
+    const sessions = Array.from(new Set(conversations.map(c => `${c.platform || 'discord'}_${c.userId}`))).map(sid => {
+        const [platform, userId] = sid.split('_');
+        const userMsgs = conversations.filter(c => (c.platform || 'discord') === platform && c.userId === userId);
         return {
             userId,
+            platform,
             username: userMsgs[0]?.username || 'Anonymous',
             lastMessage: userMsgs[0]?.content || userMsgs[0]?.response,
             timestamp: userMsgs[0]?.timestamp,
@@ -213,7 +217,7 @@ const Conversations = () => {
                                             <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary" />
                                         )}
                                         <div className="w-9 h-9 rounded-xl bg-white/5 flex items-center justify-center shrink-0 group-hover:bg-primary/10 transition-all group-hover:scale-105 border border-white/5 relative">
-                                            <User size={16} className="text-muted group-hover:text-primary transition-colors" />
+                                            {session.platform === 'facebook' ? <Facebook size={16} className="text-info group-hover:text-info transition-colors" /> : <BotIcon size={16} className="text-muted group-hover:text-primary transition-colors" />}
                                             <div className="absolute top-0 right-0 w-2 h-2 bg-primary/40 rounded-full blur-[2px] opacity-0 group-hover:opacity-100 transition-opacity" />
                                         </div>
                                         <div className="min-w-0 flex-1 py-0.5">
@@ -238,16 +242,21 @@ const Conversations = () => {
                                 <div className="px-6 py-4 border-b border-white/5 flex items-center justify-between sticky top-0 bg-surface/80 backdrop-blur-xl z-20 shadow-lg">
                                     <div className="flex items-center gap-4">
                                         <div className="relative">
-                                            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary border border-primary/5">
-                                                <User size={20} />
+                                            <div className={clsx("w-10 h-10 rounded-xl flex items-center justify-center border", selectedSession.platform === 'facebook' ? "bg-info/10 text-info border-info/20" : "bg-primary/10 text-primary border-primary/20")}>
+                                                {selectedSession.platform === 'facebook' ? <Facebook size={20} /> : <User size={20} />}
                                             </div>
                                             <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-secondary rounded-full border-2 border-surface flex items-center justify-center">
-                                                <div className="w-1 h-1 bg-primary rounded-full" />
+                                                <div className={clsx("w-1 h-1 rounded-full", selectedSession.platform === 'facebook' ? "bg-info" : "bg-primary")} />
                                             </div>
                                         </div>
                                         <div>
-                                            <h3 className="text-sm font-black tracking-tight text-white">{selectedSession.username}</h3>
-                                            <p className="text-[9px] text-muted font-black opacity-30 tracking-[0.1em] uppercase">MEMBER ID • {selectedSession.userId}</p>
+                                            <h3 className="text-sm font-black tracking-tight text-white flex items-center gap-2">
+                                                {selectedSession.username}
+                                                <span className={clsx("text-[8px] px-1.5 py-0.5 rounded uppercase", selectedSession.platform === 'facebook' ? "bg-info/20 text-info" : "bg-primary/20 text-primary")}>
+                                                    {selectedSession.platform}
+                                                </span>
+                                            </h3>
+                                            <p className="text-[9px] text-muted font-black opacity-30 tracking-[0.1em] uppercase">{selectedSession.platform === 'facebook' ? 'MESSENGER ID' : 'DISCORD ID'} • {selectedSession.userId}</p>
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-2">

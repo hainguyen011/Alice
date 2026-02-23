@@ -14,8 +14,29 @@ export const getGenAI = (apiKey) => {
 /**
  * Lấy phản hồi từ AI dựa trên cấu hình cụ thể của Bot
  */
-export const getAIResponse = async (prompt, botConfig, chatContext = '', availableRoles = '', availableChannels = '', withDetail = false) => {
+export const getAIResponse = async (prompt, botConfig, options = {}) => {
     try {
+        // Tương thích với cách gọi cũ (với các tham số rời rạc)
+        let chatContext = '';
+        let availableRoles = '';
+        let availableChannels = '';
+        let withDetail = false;
+        let platform = botConfig.platform || 'discord';
+
+        if (typeof options === 'object') {
+            chatContext = options.chatContext || '';
+            availableRoles = options.availableRoles || '';
+            availableChannels = options.availableChannels || '';
+            withDetail = options.withDetail || false;
+            if (options.platform) platform = options.platform;
+        } else {
+            // Trường hợp pass các tham số rời rạc (backward compatibility)
+            chatContext = arguments[2] || '';
+            availableRoles = arguments[3] || '';
+            availableChannels = arguments[4] || '';
+            withDetail = arguments[5] || false;
+        }
+
         const contextData = await getKnowledgeContext(prompt, botConfig, withDetail)
         const contextText = withDetail ? contextData.map(r => r.payload.content).join('\n---\n') : contextData;
 
@@ -26,24 +47,34 @@ export const getAIResponse = async (prompt, botConfig, chatContext = '', availab
             systemInstruction: botConfig.systemInstruction
         })
 
+        let platformInstructions = '';
+        if (platform === 'facebook') {
+            platformInstructions = `
+1. Đây là nền tảng Messenger. Hãy trả lời ngắn gọn, súc tích.
+2. Tránh sử dụng các định dạng Markdown quá phức tạp (Discord style). Chỉ nên dùng **In đậm** và list đơn giản.
+3. Không sử dụng các cú pháp tag của Discord như <@&ID> hay <#ID>.
+            `.trim();
+        } else {
+            platformInstructions = `
+1. Nếu tài liệu có định dạng danh sách hoặc tiêu đề, hãy trình bày lại một cách sạch sẽ bằng Markdown Discord (**In đậm**, - Danh sách).
+2. Câu trả lời phải chuyên nghiệp và dễ nhìn khi nằm trong một Discord Embed.
+${availableRoles ? `3. Nếu cần sự trợ giúp từ người thật, hãy tag role phù hợp:\n${availableRoles}` : ''}
+${availableChannels ? `4. Nếu gợi ý kênh, hãy dùng cú pháp <#ID>:\n${availableChannels}` : ''}
+            `.trim();
+        }
+
         const finalPrompt = `
 Dưới đây là thông tin bổ trợ từ hệ thống tài liệu server:
 ${contextText}
 
-Dưới đây là tóm tắt ngữ cảnh cuộc hội thoại trước đó (nếu có):
+Dưới đây là tóm tắt ngữ cảnh cuộc hội thoại trước đó:
 ${chatContext || "Chưa có ngữ cảnh."}
 
-${availableRoles ? `\nNgoài ra, đây là danh sách các Role có sẵn trong server. Nếu vấn đề vượt quá khả năng của bạn hoặc cần sự trợ giúp từ người thật, hãy tag role phù hợp (sử dụng cú pháp <@&ID>):\n${availableRoles}` : ''}
+Dựa vào các thông tin trên, hãy trả lời câu hỏi của người dùng.
+Lưu ý về định dạng trên nền tảng ${platform.toUpperCase()}:
+${platformInstructions}
 
-${availableChannels ? `\nĐây là danh sách các kênh (Channel) có sẵn trong server. Nếu câu hỏi liên quan đến tìm nơi để chat, hãy gợi ý kênh phù hợp (sử dụng cú pháp <#ID>):\n${availableChannels}` : ''}
-
-Dựa vào các thông tin trên và nhân quyền hạn của bạn, hãy trả lời câu hỏi sau của người chơi. 
-Lưu ý: 
-1. Nếu tài liệu có định dạng danh sách hoặc tiêu đề, hãy trình bày lại một cách sạch sẽ bằng Markdown Discord (**In đậm**, - Danh sách).
-2. Câu trả lời phải chuyên nghiệp và dễ nhìn khi nằm trong một Discord Embed.
-3. Nếu vấn đề nghiêm trọng, hãy chủ động tag Role quản trị để họ nhận được thông báo.
-
-Câu hỏi của người chơi:
+Câu hỏi người dùng:
 ${prompt}
     `.trim()
 

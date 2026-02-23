@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { botsApi, channelsApi } from '../services/api';
-import { Bot, Plus, X, Save, Trash2, Cpu, Shield, Settings, Activity, Edit, RefreshCw } from 'lucide-react';
+import { Bot, Plus, X, Save, Trash2, Cpu, Shield, Settings, Activity, Edit, RefreshCw, Facebook } from 'lucide-react';
 import BotCard from '../components/BotCard';
 import CustomSelect from '../components/CustomSelect';
 import { clsx } from 'clsx';
@@ -17,12 +17,18 @@ const Bots = () => {
     const [isFetchingModels, setIsFetchingModels] = useState(false);
     const [formData, setFormData] = useState({
         name: '',
+        platform: 'discord',
         modelName: 'gemini-2.0-flash',
         bot_token: '',
         api_key: '',
         systemInstruction: '',
         isActive: true,
         ragMode: 'global',
+        platformConfig: {
+            pageId: '',
+            accessToken: '',
+            verifyToken: ''
+        },
         config: {
             colors: {
                 success: '#00FFD1'
@@ -84,12 +90,18 @@ const Bots = () => {
             setEditingBot(bot);
             setFormData({
                 name: bot.name,
+                platform: bot.platform || 'discord',
                 modelName: bot.modelName || 'gemini-2.0-flash',
                 bot_token: '',
                 api_key: bot.api_key || '',
                 systemInstruction: bot.systemInstruction || '',
                 isActive: bot.isActive,
                 ragMode: bot.ragMode || 'global',
+                platformConfig: {
+                    pageId: bot.platformConfig?.pageId || '',
+                    accessToken: bot.platformConfig?.accessToken || '',
+                    verifyToken: bot.platformConfig?.verifyToken || ''
+                },
                 config: {
                     colors: {
                         success: bot.config?.colors?.success || '#00FFD1'
@@ -100,12 +112,18 @@ const Bots = () => {
             setEditingBot(null);
             setFormData({
                 name: '',
+                platform: 'discord',
                 modelName: 'gemini-2.0-flash',
                 bot_token: '',
                 api_key: '',
                 systemInstruction: '',
                 isActive: true,
                 ragMode: 'global',
+                platformConfig: {
+                    pageId: '',
+                    accessToken: '',
+                    verifyToken: ''
+                },
                 config: {
                     colors: {
                         success: '#00FFD1'
@@ -271,6 +289,33 @@ const Bots = () => {
                             <form id="bot-form" onSubmit={handleSubmit} className="space-y-8">
                                 {activeTab === 'general' && (
                                     <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+                                        <div className="space-y-4">
+                                            <label className="text-[10px] font-black text-muted uppercase tracking-[0.2em]">Target Platform</label>
+                                            <div className="flex gap-4">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setFormData({ ...formData, platform: 'discord' })}
+                                                    className={clsx(
+                                                        "flex-1 flex items-center justify-center gap-3 p-4 rounded-xl border transition-all",
+                                                        formData.platform === 'discord' ? "bg-primary/10 border-primary shadow-lg shadow-primary/20 text-white" : "bg-white/5 border-white/5 text-muted hover:border-white/10"
+                                                    )}
+                                                >
+                                                    <Bot size={18} />
+                                                    <span className="font-bold text-sm">Discord Bot</span>
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setFormData({ ...formData, platform: 'facebook' })}
+                                                    className={clsx(
+                                                        "flex-1 flex items-center justify-center gap-3 p-4 rounded-xl border transition-all",
+                                                        formData.platform === 'facebook' ? "bg-info/10 border-info shadow-lg shadow-info/20 text-white" : "bg-white/5 border-white/5 text-muted hover:border-white/10"
+                                                    )}
+                                                >
+                                                    <Facebook size={18} />
+                                                    <span className="font-bold text-sm">Messenger Bot</span>
+                                                </button>
+                                            </div>
+                                        </div>
                                         <div className="space-y-2">
                                             <label className="text-[10px] font-black text-muted uppercase tracking-[0.2em]">Display Name</label>
                                             <input
@@ -300,17 +345,31 @@ const Bots = () => {
                                 {activeTab === 'model' && (
                                     <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                            <div className="space-y-2">
-                                                <label className="text-[10px] font-black text-muted uppercase tracking-[0.2em]">Discord Bot Token</label>
-                                                <input
-                                                    type="password"
-                                                    className="input-field w-full"
-                                                    placeholder={editingBot ? "••••••••••••••••" : "Discord application token"}
-                                                    value={formData.bot_token}
-                                                    onChange={e => setFormData({ ...formData, bot_token: e.target.value })}
-                                                    required={!editingBot}
-                                                />
-                                            </div>
+                                            {formData.platform === 'discord' ? (
+                                                <div className="space-y-2">
+                                                    <label className="text-[10px] font-black text-muted uppercase tracking-[0.2em]">Discord Bot Token</label>
+                                                    <input
+                                                        type="password"
+                                                        className="input-field w-full"
+                                                        placeholder={editingBot ? "••••••••••••••••" : "Discord application token"}
+                                                        value={formData.bot_token}
+                                                        onChange={e => setFormData({ ...formData, bot_token: e.target.value })}
+                                                        required={!editingBot}
+                                                    />
+                                                </div>
+                                            ) : (
+                                                <div className="space-y-2">
+                                                    <label className="text-[10px] font-black text-muted uppercase tracking-[0.2em]">Page ID (Facebook)</label>
+                                                    <input
+                                                        type="text"
+                                                        className="input-field w-full"
+                                                        placeholder="Enter Meta Page ID"
+                                                        value={formData.platformConfig.pageId}
+                                                        onChange={e => setFormData({ ...formData, platformConfig: { ...formData.platformConfig, pageId: e.target.value } })}
+                                                        required
+                                                    />
+                                                </div>
+                                            )}
                                             <div className="space-y-2">
                                                 <label className="text-[10px] font-black text-muted uppercase tracking-[0.2em]">Gemini API Key</label>
                                                 <input
@@ -322,6 +381,32 @@ const Bots = () => {
                                                 />
                                             </div>
                                         </div>
+                                        {formData.platform === 'facebook' && (
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                <div className="space-y-2">
+                                                    <label className="text-[10px] font-black text-muted uppercase tracking-[0.2em]">Page Access Token</label>
+                                                    <input
+                                                        type="password"
+                                                        className="input-field w-full"
+                                                        placeholder="Meta Graph API Token"
+                                                        value={formData.platformConfig.accessToken}
+                                                        onChange={e => setFormData({ ...formData, platformConfig: { ...formData.platformConfig, accessToken: e.target.value } })}
+                                                        required
+                                                    />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <label className="text-[10px] font-black text-muted uppercase tracking-[0.2em]">Verify Token</label>
+                                                    <input
+                                                        type="text"
+                                                        className="input-field w-full"
+                                                        placeholder="Webhook validation secret"
+                                                        value={formData.platformConfig.verifyToken}
+                                                        onChange={e => setFormData({ ...formData, platformConfig: { ...formData.platformConfig, verifyToken: e.target.value } })}
+                                                        required
+                                                    />
+                                                </div>
+                                            </div>
+                                        )}
                                         <div className="space-y-4">
                                             <div className="flex justify-between items-center">
                                                 <label className="text-[10px] font-black text-muted uppercase tracking-[0.2em]">AI Model Selection</label>

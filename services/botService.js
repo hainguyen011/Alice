@@ -29,178 +29,142 @@ class BotManager {
             return;
         }
 
-        const client = new Client({
-            intents: [
-                GatewayIntentBits.Guilds,
-                GatewayIntentBits.GuildMessages,
-                GatewayIntentBits.MessageContent
-            ]
-        });
+        // --- Discord Platform Logic ---
+        if (botData.platform === 'discord' || !botData.platform) {
+            const client = new Client({
+                intents: [
+                    GatewayIntentBits.Guilds,
+                    GatewayIntentBits.GuildMessages,
+                    GatewayIntentBits.MessageContent
+                ]
+            });
 
-        client.botConfig = botData;
-        client.commands = new Collection();
+            client.botConfig = botData;
+            client.commands = new Collection();
 
-        // Load commands (sharing same commands directory for now)
-        const commandsPath = path.join(__dirname, '../commands');
-        if (fs.existsSync(commandsPath)) {
-            const commandFiles = fs.readdirSync(commandsPath).filter(f => f.endsWith('.js'));
-            for (const file of commandFiles) {
-                const command = (await import(`../commands/${file}`)).default;
-                client.commands.set(command.data.name, command);
-            }
-        }
-
-        client.once('ready', () => {
-            logger.info(`✅ ${botData.name} logged in as ${client.user.tag}`, botId);
-        });
-
-        client.on('messageCreate', async (message) => {
-            if (message.author.bot) return;
-
-            // 1. Luôn thêm tin nhắn vào bộ nhớ ngữ cảnh
-            const { addMessageToMemory, getContext } = await import('./memoryService.js');
-            addMessageToMemory(
-                message.channelId,
-                message.author.username,
-                message.content,
-                false // isBot = false
-            );
-
-            // 2. Kiểm tra Channel Management: Chỉ phản hồi nếu kênh được gán cho đúng Bot này
-            const { Channel } = await import('./models.js');
-            const channelConfig = await Channel.findOne({ channelId: message.channelId, isActive: true });
-
-            if (!channelConfig || !channelConfig.botId || channelConfig.botId.toString() !== client.botConfig._id.toString()) {
-                return;
+            // Load commands
+            const commandsPath = path.join(__dirname, '../commands');
+            if (fs.existsSync(commandsPath)) {
+                const commandFiles = fs.readdirSync(commandsPath).filter(f => f.endsWith('.js'));
+                for (const file of commandFiles) {
+                    const command = (await import(`../commands/${file}`)).default;
+                    client.commands.set(command.data.name, command);
+                }
             }
 
-            if (!message.mentions.has(client.user)) return;
+            client.once('ready', () => {
+                logger.info(`✅ ${botData.name} logged in as ${client.user.tag}`, botId);
+            });
 
-            // Xử lý Role Mentions
-            let processedContent = message.content;
-            if (message.guild) {
+            client.on('messageCreate', async (message) => {
+                if (message.author.bot) return;
+
+                // Existing Discord logic...
+                // (Keeping the logic for now, but in a production refactor, this should be in discordService.js)
+                const { addMessageToMemory, getContext } = await import('./memoryService.js');
+                addMessageToMemory(message.channelId, message.author.username, message.content, false);
+
+                const { Channel } = await import('./models.js');
+                const channelConfig = await Channel.findOne({ channelId: message.channelId, isActive: true });
+                if (!channelConfig || !channelConfig.botId || channelConfig.botId.toString() !== client.botConfig._id.toString()) return;
+
+                if (!message.mentions.has(client.user)) return;
+
+                let processedContent = message.content;
                 message.mentions.roles.forEach(role => {
                     processedContent = processedContent.replace(`<@&${role.id}>`, `@${role.name}`);
                 });
-            }
 
-            const contentForAI = processedContent
-                .replace(`<@${client.user.id}>`, '')
-                .replace(`<@!${client.user.id}>`, '')
-                .trim();
+                const contentForAI = processedContent
+                    .replace(`<@${client.user.id}>`, '')
+                    .replace(`<@!${client.user.id}>`, '')
+                    .trim();
 
-            if (!contentForAI) return;
+                if (!contentForAI) return;
+
+                try {
+                    const { getAIResponse, checkToxicity } = await import('./aiService.js');
+                    const { handleViolation } = await import('./moderationService.js');
+                    const { createSuccessEmbed } = await import('../utils/embedHelper.js');
+                    const { logConversation } = await import('./conversationService.js');
+
+                    const toxicityResult = await checkToxicity(contentForAI, botData);
+                    if (toxicityResult.isToxic) {
+                        const violated = await handleViolation(message, toxicityResult, botData);
+                        if (violated) return;
+                    }
+
+                    const context = getContext(message.channelId);
+                    await message.channel.sendTyping();
+
+                    let availableRoles = '';
+                    if (message.guild) {
+                        const managementKeywords = ['admin', 'quản trị', 'staff', 'mod', 'helper'];
+                        availableRoles = message.guild.roles.cache
+                            .filter(r => r.name !== '@everyone' && managementKeywords.some(kw => r.name.toLowerCase().includes(kw)))
+                            .first(15).map(r => `- ${r.name}: <@&${r.id}>`).join('\n');
+                    }
+
+                    let availableChannels = '';
+                    if (message.guild) {
+                        availableChannels = message.guild.channels.cache
+                            .filter(c => c.type === 0).map(c => `- ${c.name}: <#${c.id}>`).join('\n');
+                    }
+
+                    const aiResponse = await getAIResponse(contentForAI, botData, context, availableRoles, availableChannels, false);
+                    const aiText = typeof aiResponse === 'string' ? aiResponse : aiResponse.text;
+
+                    const embed = createSuccessEmbed(aiText, botData);
+                    if (botData.config?.colors?.success) embed.setColor(botData.config.colors.success);
+
+                    await message.reply({ embeds: [embed] });
+                    addMessageToMemory(message.channelId, botData.name, aiText, true);
+                    await logConversation(message.author.username, message.author.id, contentForAI, aiText, botData._id);
+                } catch (error) {
+                    logger.error(`Error in bot ${botData.name} message handler: ${error.message}`, botId);
+                }
+            });
 
             try {
-                const { getAIResponse, checkToxicity } = await import('./aiService.js');
-                const { handleViolation } = await import('./moderationService.js');
-                const { createSuccessEmbed } = await import('../utils/embedHelper.js');
-                const { logConversation } = await import('./conversationService.js');
-
-                // 2. Toxicity Check
-                const toxicityResult = await checkToxicity(contentForAI, botData);
-                if (toxicityResult.isToxic) {
-                    const violated = await handleViolation(message, toxicityResult, botData);
-                    if (violated) return;
-                }
-
-                // 3. Chuẩn bị ngữ cảnh
-                const context = getContext(message.channelId);
-
-                // Gửi hiệu ứng đang soạn tin nhắn
-                await message.channel.sendTyping();
-
-                let availableRoles = '';
-                if (message.guild) {
-                    const managementKeywords = ['admin', 'quản trị', 'staff', 'mod', 'helper', 'biên phòng', 'công an'];
-                    availableRoles = message.guild.roles.cache
-                        .filter(r => r.name !== '@everyone' && managementKeywords.some(kw => r.name.toLowerCase().includes(kw)))
-                        .first(15)
-                        .map(r => `- ${r.name}: <@&${r.id}>`)
-                        .join('\n');
-                }
-
-                let availableChannels = '';
-                if (message.guild) {
-                    availableChannels = message.guild.channels.cache
-                        .filter(c => c.type === 0)
-                        .map(c => `- ${c.name}: <#${c.id}>`)
-                        .join('\n');
-                }
-
-                // 4. AI Response
-                const aiResponse = await getAIResponse(
-                    contentForAI,
-                    botData,
-                    context,
-                    availableRoles,
-                    availableChannels,
-                    false // withDetail = false -> expect string
-                );
-
-                // TRÍCH XUẤT TEXT LINH HOẠT (Hỗ trợ cả format cũ và mới)
-                const aiText = typeof aiResponse === 'string' ? aiResponse : aiResponse.text;
-
-                const embed = createSuccessEmbed(aiText, botData);
-                if (botData.config?.colors?.success) {
-                    embed.setColor(botData.config.colors.success);
-                }
-
-                await message.reply({ embeds: [embed] });
-
-                logger.ai(`Generated response for ${message.author.username}`, botId);
-
-                // 5. Lưu phản hồi của Bot và bộ nhớ
-                addMessageToMemory(
-                    message.channelId,
-                    botData.name,
-                    aiText,
-                    true // isBot = true
-                );
-
-                await logConversation(
-                    message.author.username,
-                    message.author.id,
-                    contentForAI,
-                    aiText,
-                    botData._id
-                );
+                await client.login(botData.bot_token);
+                this.clients.set(botId, client);
+                logger.info(`✅ ${botData.name} successfully connected to Discord!`, botId);
             } catch (error) {
-                logger.error(`Error in bot ${botData.name} message handler: ${error.message}`, botId);
+                logger.error(`❌ Failed to login bot ${botData.name}: ${error.message}`, botId);
             }
-        });
-
-        try {
-            await client.login(botData.bot_token);
-            this.clients.set(botId, client);
-            logger.info(`✅ ${botData.name} successfully connected to Discord!`, botId);
-        } catch (error) {
-            logger.error(`❌ Failed to login bot ${botData.name}: ${error.message}`, botId);
+        }
+        // --- Facebook Platform Logic ---
+        else if (botData.platform === 'facebook') {
+            logger.info(`📡 Facebook Bot "${botData.name}" is managed via Webhook.`, botId);
+            // We store a "virtual" client or just mark it as running
+            this.clients.set(botId, { platform: 'facebook', botConfig: botData, status: 'listening' });
         }
     }
 
     async stopBot(botId) {
         const client = this.clients.get(botId);
         if (client) {
-            client.destroy();
+            if (client.destroy) client.destroy(); // Discord client
             this.clients.delete(botId);
-            console.log(`Stopping bot with ID: ${botId}`);
+            logger.info(`Stopped bot with ID: ${botId}`);
         }
     }
 
     async syncMetadata(botId) {
         const client = this.clients.get(botId);
-        if (!client || !client.user) {
-            throw new Error('Bot client is not connected or user data is unavailable.');
+        if (!client) throw new Error('Bot client is not connected.');
+
+        if (client.user) { // Discord
+            const metadata = {
+                discordName: client.user.username,
+                avatarUrl: client.user.displayAvatarURL({ size: 256 })
+            };
+            await Bot.findByIdAndUpdate(botId, metadata);
+            return metadata;
+        } else if (client.platform === 'facebook') {
+            // Placeholder: Sync Facebook metadata via Graph API if needed
+            return { message: 'Facebook metadata sync not implemented yet.' };
         }
-
-        const metadata = {
-            discordName: client.user.username,
-            avatarUrl: client.user.displayAvatarURL({ size: 256 })
-        };
-
-        await Bot.findByIdAndUpdate(botId, metadata);
-        return metadata;
     }
 }
 

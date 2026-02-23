@@ -3,7 +3,8 @@ import { botManager } from './botService.js';
 import { Post, Schedule, Campaign, Chapter } from './models.js';
 import { createSuccessEmbed } from '../utils/embedHelper.js';
 import { comicService } from './comicService.js';
-import parser from 'cron-parser';
+import * as cronParser from 'cron-parser';
+const parser = cronParser.default || cronParser;
 
 class SchedulerService {
     constructor() {
