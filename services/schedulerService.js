@@ -189,14 +189,23 @@ class SchedulerService {
         for (const campaign of activeCampaigns) {
             try {
                 // Kiểm tra xem đã đến lúc tạo chương mới chưa (dựa trên cron)
-                const cronParser = (parser.default || parser);
-                const parseFn = (cronParser.parse || cronParser.parseExpression);
-                
-                if (typeof parseFn !== 'function') {
-                    throw new Error('cron-parser: parse method not found');
+                let interval;
+                try {
+                    // Try static parse method (cron-parser 5.x+)
+                    if (parser.default && typeof parser.default.parse === 'function') {
+                        interval = parser.default.parse(campaign.cron);
+                    } else if (typeof parser.parse === 'function') {
+                        interval = parser.parse(campaign.cron);
+                    } else if (typeof parser.parseExpression === 'function') {
+                        interval = parser.parseExpression(campaign.cron);
+                    } else if (parser.default && typeof parser.default.parseExpression === 'function') {
+                        interval = parser.default.parseExpression(campaign.cron);
+                    } else {
+                        throw new Error('No valid parse method found in cron-parser');
+                    }
+                } catch (e) {
+                    throw new Error(`Cron parse error: ${e.message}`);
                 }
-
-                const interval = parseFn.call(cronParser, campaign.cron);
                 const prevRun = interval.prev().toDate();
 
                 // Tránh tạo lặp lại: Kiểm tra xem có Chapter nào cho Campaign này vừa được tạo gần đây không
