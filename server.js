@@ -31,31 +31,14 @@ const __dirname = path.dirname(__filename)
 const app = express()
 const PORT = process.env.DASHBOARD_PORT || 3000
 
-const allowedOrigins = [
-    'http://localhost:5173',
-    'http://localhost:5174',
-    'http://127.0.0.1:5173',
-    'http://127.0.0.1:5174',
-    'http://172.16.65.10:81',
-    'http://172.16.65.10:3000',
-    process.env.FRONTEND_URL
-].filter(Boolean);
+// 1. CORS - Cực kỳ thoáng để test
+app.use(cors({ origin: true, credentials: true }));
 
-app.use(cors({
-    origin: (origin, callback) => {
-        // Allow requests with no origin (like mobile apps or curl)
-        if (!origin) return callback(null, true);
-        if (allowedOrigins.indexOf(origin) !== -1 || origin.includes('172.16.65.10')) {
-            callback(null, true);
-        } else {
-            callback(new Error('Not allowed by CORS'));
-        }
-    },
-    credentials: true,
-    methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'Cookie']
-}));
-
+// 2. Logging Auth Requests
+app.use('/api/auth', (req, res, next) => {
+    console.log(`🔌 Auth Route Hit: ${req.method} ${req.url}`);
+    next();
+});
 
 app.use(express.json())
 app.use(cookieParser())

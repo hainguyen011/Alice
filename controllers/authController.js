@@ -19,36 +19,51 @@ const generateTokens = (user) => {
 };
 
 export const login = async (req, res) => {
+    console.log('--- 🔑 Login Attempt Started ---');
     try {
         const { username, password } = req.body;
+        console.log(`Step 1: Received credentials for user: ${username}`);
 
         if (!username || !password) {
+            console.log('Step 1.1: Missing credentials');
             return res.status(400).json({ error: 'Vui lòng nhập đầy đủ tài khoản và mật khẩu' });
         }
 
+        console.log('Step 2: Searching for user in Database...');
         const user = await User.findOne({ username });
+        
         if (!user) {
+            console.log('Step 2.1: User not found');
             return res.status(401).json({ error: 'Tài khoản hoặc mật khẩu không chính xác' });
         }
+        console.log('Step 2.2: User found, moving to password check');
 
+        console.log('Step 3: Comparing passwords with bcrypt...');
         const isMatch = await bcrypt.compare(password, user.password);
+        
         if (!isMatch) {
+            console.log('Step 3.1: Password mismatch');
             return res.status(401).json({ error: 'Tài khoản hoặc mật khẩu không chính xác' });
         }
+        console.log('Step 3.2: Password matched');
 
+        console.log('Step 4: Generating JWT tokens...');
         const { accessToken, refreshToken } = generateTokens(user);
+        console.log('Step 4.1: Tokens generated');
 
-        // Sử dụng updateOne để nhanh hơn và tránh các vấn đề về schema validation / hooks khi save
+        console.log('Step 5: Updating refreshToken in DB...');
         await User.updateOne({ _id: user._id }, { refreshToken });
+        console.log('Step 5.1: DB updated');
 
-        // Gửi refresh token qua cookie bảo mật
+        console.log('Step 6: Setting cookie and sending response...');
         res.cookie('refreshToken', refreshToken, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             sameSite: 'strict',
-            maxAge: 7 * 24 * 60 * 60 * 1000 // 7 ngày
+            maxAge: 7 * 24 * 60 * 60 * 1000
         });
 
+        console.log('--- ✅ Login Successful! Response sent. ---');
         return res.json({
             accessToken,
             user: {
@@ -58,7 +73,7 @@ export const login = async (req, res) => {
             }
         });
     } catch (error) {
-        console.error('Login error:', error);
+        console.error('❌ Login error:', error);
         return res.status(500).json({ error: 'Lỗi server khi đăng nhập' });
     }
 };
