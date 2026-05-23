@@ -190,7 +190,13 @@ class SchedulerService {
             try {
                 // Kiểm tra xem đã đến lúc tạo chương mới chưa (dựa trên cron)
                 const cronParser = (parser.default || parser);
-                const interval = cronParser.parseExpression(campaign.cron);
+                const parseFn = (cronParser.parse || cronParser.parseExpression);
+                
+                if (typeof parseFn !== 'function') {
+                    throw new Error('cron-parser: parse method not found');
+                }
+
+                const interval = parseFn.call(cronParser, campaign.cron);
                 const prevRun = interval.prev().toDate();
 
                 // Tránh tạo lặp lại: Kiểm tra xem có Chapter nào cho Campaign này vừa được tạo gần đây không
