@@ -37,7 +37,7 @@ const LogBar = () => {
 
         // SSE Setup
         const token = localStorage.getItem('accessToken');
-        const apiUrl = import.meta.env.VITE_API_URL || 'http://172.16.65.10:3000/api';
+        const apiUrl = import.meta.env.VITE_API_URL || '/api';
         const eventSource = new EventSource(`${apiUrl}/logs/stream?token=${token}`);
 
         eventSource.onmessage = (event) => {

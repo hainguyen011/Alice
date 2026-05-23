@@ -69,7 +69,7 @@ const frontendDistPath = path.join(__dirname, 'frontend/dist');
 if (fs.existsSync(frontendDistPath)) {
     app.use(express.static(frontendDistPath));
     // Support Client-side routing (React Router)
-    app.get('*', (req, res, next) => {
+    app.get('(.*)', (req, res, next) => {
         if (req.path.startsWith('/api')) return next();
         res.sendFile(path.join(frontendDistPath, 'index.html'));
     });
