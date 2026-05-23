@@ -103,3 +103,24 @@
 [2026-05-23T05:17:03.046Z] [EVENT:STRUCTURAL_CHANGED] [FROM:SYSTEM] payload: {"path":"d:\\I2FLabs\\Projects\\Alice\\.aevum\\session.json"}
 [2026-05-23T05:17:03.136Z] [EVENT:STRUCTURAL_CHANGED] [FROM:SYSTEM] payload: {"path":"d:\\I2FLabs\\Projects\\Alice\\.aevum\\session.json"}
 [2026-05-23T05:17:04.438Z] [EVENT:CONTEXT_SYNCED] [FROM:SYSTEM] payload: {"projectRoot":"d:\\I2FLabs\\Projects\\Alice","filesCount":8}
+[2026-05-23T05:28:35.006Z] [EVENT:STRUCTURAL_CHANGED] [FROM:SYSTEM] payload: {"path":"d:\\I2FLabs\\Projects\\Alice\\.aevum\\session.json"}
+[2026-05-23T05:28:35.091Z] [EVENT:STRUCTURAL_CHANGED] [FROM:SYSTEM] payload: {"path":"d:\\I2FLabs\\Projects\\Alice\\.aevum\\session.json"}
+[2026-05-23T05:28:36.417Z] [EVENT:CONTEXT_SYNCED] [FROM:SYSTEM] payload: {"projectRoot":"d:\\I2FLabs\\Projects\\Alice","filesCount":8}
+[2026-05-23T05:37:47.640Z] [SYSTEM] Pulse Monitor Initialized - Observer Pattern Active.
+[2026-05-23T05:37:48.305Z] [EVENT:STRUCTURAL_CHANGED] [FROM:SYSTEM] payload: {"path":"d:\\I2FLabs\\Projects\\Alice\\.aevum\\aevum_version.json"}
+[2026-05-23T05:37:48.307Z] [EVENT:STRUCTURAL_CHANGED] [FROM:SYSTEM] payload: {"path":"d:\\I2FLabs\\Projects\\Alice\\.aevum\\global\\agent_rules.md"}
+[2026-05-23T05:37:48.328Z] [EVENT:STRUCTURAL_CHANGED] [FROM:SYSTEM] payload: {"path":"d:\\I2FLabs\\Projects\\Alice\\.aevum\\global\\agent_rules_compressed.md"}
+[2026-05-23T05:37:48.352Z] [EVENT:STRUCTURAL_CHANGED] [FROM:SYSTEM] payload: {"path":"d:\\I2FLabs\\Projects\\Alice\\.aevum\\global\\architecture.md"}
+[2026-05-23T05:37:48.369Z] [EVENT:STRUCTURAL_CHANGED] [FROM:SYSTEM] payload: {"path":"d:\\I2FLabs\\Projects\\Alice\\.aevum\\global\\conventions.md"}
+[2026-05-23T05:37:48.387Z] [EVENT:STRUCTURAL_CHANGED] [FROM:SYSTEM] payload: {"path":"d:\\I2FLabs\\Projects\\Alice\\.aevum\\global\\conventions\\plan_standard.md"}
+[2026-05-23T05:37:48.401Z] [EVENT:STRUCTURAL_CHANGED] [FROM:SYSTEM] payload: {"path":"d:\\I2FLabs\\Projects\\Alice\\.aevum\\global\\developer_profile.md"}
+[2026-05-23T05:37:48.418Z] [EVENT:STRUCTURAL_CHANGED] [FROM:SYSTEM] payload: {"path":"d:\\I2FLabs\\Projects\\Alice\\.aevum\\global\\dictionary.md"}
+[2026-05-23T05:37:48.433Z] [EVENT:STRUCTURAL_CHANGED] [FROM:SYSTEM] payload: {"path":"d:\\I2FLabs\\Projects\\Alice\\.aevum\\global\\tech_stack.md"}
+[2026-05-23T05:37:48.448Z] [EVENT:STRUCTURAL_CHANGED] [FROM:SYSTEM] payload: {"path":"d:\\I2FLabs\\Projects\\Alice\\.aevum\\mcp\\port-config.json"}
+[2026-05-23T05:37:48.461Z] [EVENT:STRUCTURAL_CHANGED] [FROM:SYSTEM] payload: {"path":"d:\\I2FLabs\\Projects\\Alice\\.aevum\\mcp\\resources.json"}
+[2026-05-23T05:37:48.478Z] [EVENT:STRUCTURAL_CHANGED] [FROM:SYSTEM] payload: {"path":"d:\\I2FLabs\\Projects\\Alice\\.aevum\\mcp.json"}
+[2026-05-23T05:37:49.791Z] [EVENT:CONTEXT_SYNCED] [FROM:SYSTEM] payload: {"projectRoot":"d:\\I2FLabs\\Projects\\Alice","filesCount":0}
+[2026-05-23T05:37:50.174Z] [EVENT:STRUCTURAL_CHANGED] [FROM:SYSTEM] payload: {"path":"d:\\I2FLabs\\Projects\\Alice\\.aevum\\mcp.json"}
+[2026-05-23T05:37:50.175Z] [EVENT:STRUCTURAL_CHANGED] [FROM:SYSTEM] payload: {"path":"d:\\I2FLabs\\Projects\\Alice\\.aevum\\mcp_antigravity.json"}
+[2026-05-23T05:37:50.187Z] [EVENT:STRUCTURAL_CHANGED] [FROM:SYSTEM] payload: {"path":"d:\\I2FLabs\\Projects\\Alice\\.aevum\\mcp_config.json"}
+[2026-05-23T05:37:51.519Z] [EVENT:CONTEXT_SYNCED] [FROM:SYSTEM] payload: {"projectRoot":"d:\\I2FLabs\\Projects\\Alice","filesCount":0}
