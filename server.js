@@ -856,6 +856,25 @@ app.post('/api/chat', async (req, res) => {
 });
 
 
+// --- Static Files & Frontend (FALLBACK) ---
+
+// Serve static files from uploads folder
+const uploadDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
+}
+app.use('/uploads', express.static(uploadDir));
+
+// Serve Frontend Static Files (Production)
+const frontendDistPath = path.join(__dirname, 'frontend/dist');
+if (fs.existsSync(frontendDistPath)) {
+    app.use(express.static(frontendDistPath));
+    // Support Client-side routing (React Router) - Express 5 syntax
+    app.get('/*path', (req, res) => {
+        res.sendFile(path.join(frontendDistPath, 'index.html'));
+    });
+}
+
 // Khởi tạo
 const startServer = async () => {
     await connectDB();
