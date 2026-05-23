@@ -22,6 +22,10 @@ export const login = async (req, res) => {
     try {
         const { username, password } = req.body;
 
+        if (!username || !password) {
+            return res.status(400).json({ error: 'Vui lòng nhập đầy đủ tài khoản và mật khẩu' });
+        }
+
         const user = await User.findOne({ username });
         if (!user) {
             return res.status(401).json({ error: 'Tài khoản hoặc mật khẩu không chính xác' });
@@ -34,9 +38,8 @@ export const login = async (req, res) => {
 
         const { accessToken, refreshToken } = generateTokens(user);
 
-        // Lưu refresh token vào DB
-        user.refreshToken = refreshToken;
-        await user.save();
+        // Sử dụng updateOne để nhanh hơn và tránh các vấn đề về schema validation / hooks khi save
+        await User.updateOne({ _id: user._id }, { refreshToken });
 
         // Gửi refresh token qua cookie bảo mật
         res.cookie('refreshToken', refreshToken, {
@@ -46,7 +49,7 @@ export const login = async (req, res) => {
             maxAge: 7 * 24 * 60 * 60 * 1000 // 7 ngày
         });
 
-        res.json({
+        return res.json({
             accessToken,
             user: {
                 id: user._id,
@@ -56,7 +59,7 @@ export const login = async (req, res) => {
         });
     } catch (error) {
         console.error('Login error:', error);
-        res.status(500).json({ error: 'Lỗi server khi đăng nhập' });
+        return res.status(500).json({ error: 'Lỗi server khi đăng nhập' });
     }
 };
 
