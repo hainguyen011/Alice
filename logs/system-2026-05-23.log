@@ -1,1 +1,23 @@
 [2026-05-23 09:57:29] [INFO] [system] 🤖 Found 1 active bots to initialize. 
+[2026-05-23 11:58:29] [INFO] [system] 🚀 Alice Dashboard API is now LIVE at http://172.16.65.10:3000 
+[2026-05-23 11:58:29] [INFO] [system] 🤖 Found 1 active bots to initialize. 
+[2026-05-23 11:58:40] [ERROR] [697fa459e6b424807191fbe2] ❌ Failed to login bot alice: Connect Timeout Error (attempted addresses: 162.159.137.232:443, 162.159.138.232:443, 162.159.128.233:443, 162.159.135.232:443, 162.159.136.232:443, timeout: 10000ms) 
+[2026-05-23 11:58:40] [INFO] [system] 🏁 Bot initialization complete. Success: 1, Failed: 0 
+[2026-05-23 12:04:34] [INFO] [system] GET /api/health 
+[2026-05-23 12:04:47] [INFO] [system] 🚀 Alice Dashboard API is now LIVE at http://172.16.65.10:3000 
+[2026-05-23 12:04:48] [INFO] [system] 🤖 Found 1 active bots to initialize. 
+[2026-05-23 12:04:58] [ERROR] [697fa459e6b424807191fbe2] ❌ Failed to login bot alice: Connect Timeout Error (attempted addresses: 162.159.135.232:443, 162.159.128.233:443, 162.159.136.232:443, 162.159.138.232:443, 162.159.137.232:443, timeout: 10000ms) 
+[2026-05-23 12:04:58] [INFO] [system] 🏁 Bot initialization complete. Success: 1, Failed: 0 
+[2026-05-23 12:05:00] [INFO] [system] GET / 
+[2026-05-23 12:05:25] [INFO] [system] 🚀 Alice Dashboard API is now LIVE at http://172.16.65.10:3000 
+[2026-05-23 12:05:26] [INFO] [system] 🤖 Found 1 active bots to initialize. 
+[2026-05-23 12:05:36] [ERROR] [697fa459e6b424807191fbe2] ❌ Failed to login bot alice: Connect Timeout Error (attempted addresses: 162.159.135.232:443, 162.159.128.233:443, 162.159.136.232:443, 162.159.138.232:443, 162.159.137.232:443, timeout: 10000ms) 
+[2026-05-23 12:05:36] [INFO] [system] 🏁 Bot initialization complete. Success: 1, Failed: 0 
+[2026-05-23 12:06:01] [INFO] [system] GET / 
+[2026-05-23 12:06:08] [INFO] [system] GET /api/simple-ping 
+[2026-05-23 12:06:08] [INFO] [system] GET /favicon.ico 
+[2026-05-23 12:06:23] [INFO] [system] GET /login 
+[2026-05-23 12:11:18] [INFO] [system] GET /login 
+[2026-05-23 12:11:18] [INFO] [system] GET /login 
+[2026-05-23 12:11:38] [INFO] [system] GET /api/simple-ping 
+[2026-05-23 12:15:31] [INFO] [system] GET /login 

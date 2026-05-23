@@ -63,6 +63,7 @@ app.get('/api/logs/stream', (req, res) => logger.handleSSE(req, res));
 // --- API Routes (PHẢI TRƯỚC STATIC ĐỂ TRÁNH CONFLICT) ---
 
 app.get('/api/health', (req, res) => res.json({ status: 'ok', time: new Date() }));
+app.get('/api/simple-ping', (req, res) => res.send('pong'));
 
 // --- Auth Routes ---
 app.post('/api/auth/login', authController.login);
