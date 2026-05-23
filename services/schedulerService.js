@@ -189,7 +189,8 @@ class SchedulerService {
         for (const campaign of activeCampaigns) {
             try {
                 // Kiểm tra xem đã đến lúc tạo chương mới chưa (dựa trên cron)
-                const interval = parser.parseExpression(campaign.cron);
+                const cronParser = (parser.default || parser);
+                const interval = cronParser.parseExpression(campaign.cron);
                 const prevRun = interval.prev().toDate();
 
                 // Tránh tạo lặp lại: Kiểm tra xem có Chapter nào cho Campaign này vừa được tạo gần đây không

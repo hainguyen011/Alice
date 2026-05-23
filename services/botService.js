@@ -50,7 +50,7 @@ class BotManager {
             }
         }
 
-        client.once('ready', () => {
+        client.once('clientReady', () => {
             logger.info(`✅ ${botData.name} logged in as ${client.user.tag}`, botId);
         });
 
