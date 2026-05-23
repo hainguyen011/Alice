@@ -57,24 +57,6 @@ app.use((req, res, next) => {
 app.use(express.json())
 app.use(cookieParser())
 
-// Serve static files from uploads folder
-const uploadDir = path.join(__dirname, 'uploads');
-if (!fs.existsSync(uploadDir)) {
-    fs.mkdirSync(uploadDir, { recursive: true });
-}
-app.use('/uploads', express.static(uploadDir));
-
-// Serve Frontend Static Files (Production)
-const frontendDistPath = path.join(__dirname, 'frontend/dist');
-if (fs.existsSync(frontendDistPath)) {
-    app.use(express.static(frontendDistPath));
-    // Support Client-side routing (React Router)
-    app.get('(.*)', (req, res, next) => {
-        if (req.path.startsWith('/api')) return next();
-        res.sendFile(path.join(frontendDistPath, 'index.html'));
-    });
-}
-
 
 // Middleware log yêu cầu
 app.use((req, res, next) => {
