@@ -62,13 +62,17 @@ class ComicService {
 
             // 2. Generate Image using imageGenService
             let imageUrl = '';
+            const fallbackImage = '/public/vibecity_rp_hero.png'; // Placeholder image from public folder
+            
             try {
                 // Pass campaign's API key to image service
                 const imageBotConfig = { ...campaign.botId._doc, api_key: apiKey };
                 imageUrl = await imageGenService.generateImage(chapterData.imagePrompt, imageBotConfig, campaign.style);
             } catch (imgError) {
-                console.error('Initial image generation failed:', imgError);
-                // We keep going, the user can regenerate later
+                console.error(`⚠️ Image generation failed for Chapter ${nextChapterNum}:`, imgError.message);
+                // Use a fallback image so the chapter can still be created and sent
+                imageUrl = fallbackImage;
+                console.log('👉 Using fallback image. You can try regenerating the image later in the dashboard.');
             }
 
             // 3. Create Chapter Draft
@@ -80,7 +84,7 @@ class ComicService {
                 imagePrompt: chapterData.imagePrompt,
                 userPrompt: instructionToUse,
                 imageUrl,
-                status: 'draft'
+                status: imageUrl === fallbackImage ? 'failed_image' : 'draft'
             });
 
             // Update campaign current chapter and clear one-time prompt
