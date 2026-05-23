@@ -14,11 +14,22 @@ class BotManager {
     }
 
     async initializeBots() {
-        const activeBots = await Bot.find({ isActive: true });
-        logger.system(`🤖 Found ${activeBots.length} active bots to initialize.`);
+        try {
+            const activeBots = await Bot.find({ isActive: true });
+            logger.system(`🤖 Found ${activeBots.length} active bots to initialize.`);
 
-        for (const botData of activeBots) {
-            await this.startBot(botData);
+            // Khởi động tất cả bot song song, không để con này đợi con kia
+            const startupPromises = activeBots.map(botData => this.startBot(botData));
+            
+            // Chạy và chờ kết quả của tất cả (kể cả con thành công hay thất bại)
+            const results = await Promise.allSettled(startupPromises);
+            
+            const successCount = results.filter(r => r.status === 'fulfilled').length;
+            const failCount = results.filter(r => r.status === 'rejected').length;
+            
+            logger.system(`🏁 Bot initialization complete. Success: ${successCount}, Failed: ${failCount}`);
+        } catch (error) {
+            logger.error(`Critical error during initializeBots: ${error.message}`);
         }
     }
 

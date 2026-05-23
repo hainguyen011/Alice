@@ -848,18 +848,27 @@ if (fs.existsSync(frontendDistPath)) {
 
 // Khởi tạo
 const startServer = async () => {
-    await connectDB();
-    await initCollection();
+    try {
+        // 1. Kết nối DB trước (Cần thiết cho Auth/Login)
+        await connectDB();
+        
+        // 2. MỞ CỔNG SERVER NGAY LẬP TỨC
+        // Việc này cực kỳ quan trọng để Nginx không bị 504 khi Bot đang load
+        app.listen(PORT, '0.0.0.0', () => {
+            logger.system(`🚀 Alice Dashboard API is now LIVE at http://172.16.65.10:${PORT}`);
+            console.log('💡 Tip: You can now login while bots are starting in background.');
+        });
 
-    // Khởi tạo bots trong process này để API có thể truy cập Discord client
-    await botManager.initializeBots();
+        // 3. Khởi động các dịch vụ chạy nền (Không chặn tiến trình chính)
+        // Chạy bất đồng bộ, không dùng await ở đây để tránh treo API
+        initCollection().catch(err => logger.error(`Qdrant Init Error: ${err.message}`));
+        botManager.initializeBots().catch(err => logger.error(`Bot Manager Error: ${err.message}`));
+        schedulerService.start();
 
-    // Khởi động scheduler
-    schedulerService.start();
-
-    app.listen(PORT, '0.0.0.0', () => {
-        logger.system(`🚀 Alice Dashboard API running at http://172.16.65.10:${PORT}`);
-    });
+    } catch (error) {
+        logger.error(`❌ CRITICAL STARTUP ERROR: ${error.message}`);
+        process.exit(1);
+    }
 }
 
 startServer();
