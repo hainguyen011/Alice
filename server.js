@@ -31,14 +31,17 @@ const __dirname = path.dirname(__filename)
 const app = express()
 const PORT = process.env.DASHBOARD_PORT || 3000
 
-// 1. CORS - Cực kỳ thoáng để test
-app.use(cors({ origin: true, credentials: true }));
-
-// 2. Logging Auth Requests
-app.use('/api/auth', (req, res, next) => {
-    console.log(`🔌 Auth Route Hit: ${req.method} ${req.url}`);
+// --- SIÊU DEBUG: LOG TẤT CẢ YÊU CẦU ĐẾN ---
+app.use((req, res, next) => {
+    console.log(`🚀 [${new Date().toISOString()}] ${req.method} ${req.url} - From: ${req.ip}`);
     next();
 });
+
+// 1. CORS - Mở toang để test, cho phép tất cả các nguồn
+app.use(cors({
+    origin: (origin, callback) => callback(null, true),
+    credentials: true
+}));
 
 app.use(express.json())
 app.use(cookieParser())
