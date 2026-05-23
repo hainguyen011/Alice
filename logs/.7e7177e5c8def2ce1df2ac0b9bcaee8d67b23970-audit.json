@@ -1,0 +1,15 @@
+{
+    "keep": {
+        "days": true,
+        "amount": 14
+    },
+    "auditLog": "D:\\I2FLabs\\Projects\\Alice\\logs\\.7e7177e5c8def2ce1df2ac0b9bcaee8d67b23970-audit.json",
+    "files": [
+        {
+            "date": 1779502352203,
+            "name": "D:\\I2FLabs\\Projects\\Alice\\logs\\system-2026-05-23.log",
+            "hash": "f8fdb4ea9fe18e6f2303cf0502dba9ab260f81c16f15c6f055a06ad810e1cb95"
+        }
+    ],
+    "hashType": "sha256"
+}
