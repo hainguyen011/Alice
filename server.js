@@ -64,6 +64,17 @@ if (!fs.existsSync(uploadDir)) {
 }
 app.use('/uploads', express.static(uploadDir));
 
+// Serve Frontend Static Files (Production)
+const frontendDistPath = path.join(__dirname, 'frontend/dist');
+if (fs.existsSync(frontendDistPath)) {
+    app.use(express.static(frontendDistPath));
+    // Support Client-side routing (React Router)
+    app.get('*', (req, res, next) => {
+        if (req.path.startsWith('/api')) return next();
+        res.sendFile(path.join(frontendDistPath, 'index.html'));
+    });
+}
+
 
 // Middleware log yêu cầu
 app.use((req, res, next) => {
@@ -856,9 +867,9 @@ const startServer = async () => {
     // Khởi động scheduler
     schedulerService.start();
 
-    app.listen(PORT, () => {
-        logger.system(`🚀 Alice Dashboard API running at http://localhost:${PORT}`);
-    })
+    app.listen(PORT, '0.0.0.0', () => {
+        logger.system(`🚀 Alice Dashboard API running at http://172.16.65.10:${PORT}`);
+    });
 }
 
 startServer();

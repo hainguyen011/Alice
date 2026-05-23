@@ -362,7 +362,7 @@ const Campaigns = () => {
                                                     <div className="aspect-square bg-white/5 border border-white/5 rounded overflow-hidden relative group">
                                                         {ch.imageUrl ? (
                                                             <img
-                                                                src={ch.imageUrl.startsWith('http') ? ch.imageUrl : `http://localhost:3000${ch.imageUrl}`}
+                                                                src={ch.imageUrl.startsWith('http') ? ch.imageUrl : `http://172.16.65.10:3000${ch.imageUrl}`}
                                                                 alt="Chapter Illustration"
                                                                 className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500"
                                                             />
